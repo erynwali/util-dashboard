@@ -28,11 +28,11 @@ const FeederSummary: React.FC<FeederSummaryProps> = ({
   
   // Helper function to determine status color
   const getStatusColor = (feeder: Feeder) => {
-    if (feeder.critical) return 'bg-critical text-white';
+    if (feeder.critical) return 'bg-red-600 text-white';
     
     const loadPercent = (feeder.currentLoad / feeder.capacity) * 100;
-    if (loadPercent >= 80) return 'bg-warning text-black';
-    return 'bg-normal text-white';
+    if (loadPercent >= 80) return 'bg-yellow-400 text-black';
+    return 'bg-green-600 text-white';
   };
   
   // Helper function to format the load percentage
@@ -41,46 +41,69 @@ const FeederSummary: React.FC<FeederSummaryProps> = ({
     return `${Math.round(percentage)}%`;
   };
 
+  // Helper function to generate progress bar styling
+  const getProgressBarStyle = (feeder: Feeder) => {
+    const loadPercent = (feeder.currentLoad / feeder.capacity) * 100;
+    let bgColor = 'bg-green-600';
+    
+    if (feeder.critical) {
+      bgColor = 'bg-red-600';
+    } else if (loadPercent >= 80) {
+      bgColor = 'bg-yellow-400';
+    }
+    
+    return { 
+      width: `${loadPercent}%`, 
+      backgroundColor: bgColor 
+    };
+  };
+
   return (
-    <div className="bg-slate-800 rounded-lg shadow-lg p-4 flex-1">
-      <h2 className="text-lg font-bold mb-4 text-white border-b border-slate-700 pb-2">
-        Feeder Summary
-      </h2>
+    <div className="bg-slate-800 rounded-lg shadow-lg p-4 flex-1 flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-bold text-white">
+          Feeder Summary
+        </h2>
+        <div className="text-xs text-gray-400">{feeders.length} feeders</div>
+      </div>
       
-      <div className="overflow-y-auto scrollbar-thin h-[calc(100%-2.5rem)]">
-        <table className="w-full text-sm">
-          <thead className="text-left text-gray-400">
-            <tr>
-              <th className="pb-2">Name</th>
-              <th className="pb-2">Load</th>
-              <th className="pb-2">Margin</th>
-              <th className="pb-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedFeeders.map((feeder) => (
-              <tr 
-                key={feeder.id}
-                className={`
-                  border-b border-slate-700 hover:bg-slate-700 cursor-pointer transition
-                  ${selectedFeeder?.id === feeder.id ? 'bg-slate-700' : ''}
-                `}
-                onClick={() => setSelectedFeeder(feeder)}
-              >
-                <td className="py-2">{feeder.name}</td>
-                <td className="py-2">{formatLoad(feeder.currentLoad, feeder.capacity)}</td>
-                <td className={`py-2 ${feeder.breachMargin < 10 ? 'text-red-400' : 'text-gray-300'}`}>
-                  {feeder.breachMargin.toFixed(1)}%
-                </td>
-                <td className="py-2">
-                  <span className={`px-2 py-1 rounded-full text-xs ${getStatusColor(feeder)}`}>
-                    {feeder.critical ? 'Critical' : feeder.breachMargin < 10 ? 'Warning' : 'Normal'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="overflow-y-auto scrollbar-thin flex-1 -mx-2 px-2">
+        {sortedFeeders.map((feeder) => (
+          <div 
+            key={feeder.id}
+            onClick={() => setSelectedFeeder(feeder)}
+            className={`
+              mb-3 p-3 rounded-md cursor-pointer transition-colors duration-150
+              ${selectedFeeder?.id === feeder.id ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}
+              ${feeder.critical ? 'border-l-4 border-red-600' : ''}
+            `}
+          >
+            <div className="flex justify-between items-center mb-1">
+              <div className="font-medium">{feeder.name}</div>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(feeder)}`}>
+                {feeder.critical ? 'Critical' : feeder.breachMargin < 10 ? 'Warning' : 'Normal'}
+              </span>
+            </div>
+            
+            <div className="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Region: {feeder.region}</span>
+              <span>Margin: {feeder.breachMargin.toFixed(1)}%</span>
+            </div>
+            
+            <div className="mt-2">
+              <div className="w-full bg-slate-700 rounded-full h-2 mb-1">
+                <div 
+                  className="h-2 rounded-full transition-all duration-500 ease-in-out"
+                  style={getProgressBarStyle(feeder)}
+                ></div>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>{formatLoad(feeder.currentLoad, feeder.capacity)}</span>
+                <span>{feeder.capacity} kW</span>
+              </div>
+            </div>
+          </div>
+        ))}
         
         {feeders.length === 0 && (
           <div className="text-center text-gray-400 py-4">

@@ -79,12 +79,12 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="flex flex-col min-h-screen bg-slate-900 text-white">
+    <main className="flex flex-col h-screen overflow-hidden bg-slate-900 text-white">
       <Header />
       
-      <div className="flex flex-1 p-4 gap-4 h-[calc(100vh-64px)]">
+      <div className="flex flex-1 gap-4 p-4 h-[calc(100vh-64px)]">
         {/* Left panel: Feeder summary and audit trail */}
-        <div className="flex flex-col w-1/4 gap-4">
+        <div className="flex flex-col w-1/4 gap-4 h-full">
           <FeederSummary 
             feeders={feeders} 
             selectedFeeder={selectedFeeder}
@@ -108,7 +108,7 @@ export default function Home() {
         </div>
         
         {/* Right panel: Agent chat */}
-        <div className="w-1/4">
+        <div className="w-1/4 h-full">
           <AgentChat 
             chatLogs={chatLogs} 
             selectedFeeder={selectedFeeder}
