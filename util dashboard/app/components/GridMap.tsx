@@ -29,6 +29,55 @@ const GridMap: React.FC<GridMapProps> = ({
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [tooltipPos, setTooltipPos] = useState<[number, number]>([0, 0]);
   const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
+  
+  // New state to track the active feeder filter
+  const [activeFeederFilter, setActiveFeederFilter] = useState<string | null>(null);
+
+  // Effect to reset filter when selected feeder changes
+  useEffect(() => {
+    // When a feeder is selected from outside, apply the filter
+    const selectedFeeder = feeders.find(f => 
+      f === selectedItem || (selectedItem && f.id === selectedItem.id)
+    );
+    
+    if (selectedFeeder) {
+      setActiveFeederFilter(selectedFeeder.id);
+    }
+  }, [selectedItem, feeders]);
+
+  // Function to clear all filters
+  const clearFilters = () => {
+    setActiveFeederFilter(null);
+    setSelectedItem(null);
+  };
+
+  // Function to determine if an item should be displayed based on current filters
+  const shouldShowItem = (item: any, type: 'feeder' | 'der' | 'household') => {
+    // If no feeder filter is active, show all items based on map filter
+    if (!activeFeederFilter) {
+      return mapFilter === 'all' || 
+        (type === 'feeder' && mapFilter === 'feeders') ||
+        (type === 'der' && mapFilter === 'ders') ||
+        (type === 'household' && mapFilter === 'households');
+    }
+    
+    // If a feeder filter is active
+    if (type === 'feeder') {
+      // Only show the active feeder
+      return item.id === activeFeederFilter;
+    } else if (type === 'der') {
+      // Find the mitigation events for the active feeder
+      const feederEvents = mitigationEvents.filter(e => e.feederId === activeFeederFilter);
+      // Show DERs that are used in these events
+      const eventDerIds = feederEvents.flatMap(e => e.actionSet.derIds);
+      return eventDerIds.includes(item.id);
+    } else if (type === 'household') {
+      // Only show households connected to the active feeder
+      return item.feederId === activeFeederFilter;
+    }
+    
+    return false;
+  };
 
   // Dark mode style URL
   const darkModeUrl = 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png';
@@ -67,6 +116,8 @@ const GridMap: React.FC<GridMapProps> = ({
                event.status === 'active'
     );
     
+    const hasSimulation = feeder.simulationActive;
+    
     // If there's an active fallback, override with fallback color
     if (hasFallback) {
       return L.divIcon({
@@ -74,6 +125,20 @@ const GridMap: React.FC<GridMapProps> = ({
         html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0110 2v5.8h5a1 1 0 01.5 1.8l-9 7A1 1 0 015 15.8V10H2a1 1 0 01-.5-1.8l9-7z" clip-rule="evenodd" />
+                </svg>
+              </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+    }
+    
+    // If it's part of a simulation, show with a different visual
+    if (hasSimulation) {
+      return L.divIcon({
+        className: 'bg-purple-600 rounded-full shadow-lg simulation-pulse',
+        html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                 </svg>
               </div>`,
         iconSize: [32, 32],
@@ -108,6 +173,12 @@ const GridMap: React.FC<GridMapProps> = ({
   // Create custom markers for DER assets based on type
   const createDerIcon = (der: DerAsset) => {
     let iconSvg = '';
+    let backgroundClass = 'bg-indigo-600';
+    
+    // Check if DER is part of a simulation
+    if (der.simulationActive) {
+      backgroundClass = 'bg-purple-600 simulation-pulse';
+    }
     
     switch (der.type) {
       case 'battery':
@@ -124,7 +195,7 @@ const GridMap: React.FC<GridMapProps> = ({
     }
     
     return L.divIcon({
-      className: 'bg-indigo-600 bg-opacity-90 rounded-full shadow-lg',
+      className: `${backgroundClass} bg-opacity-90 rounded-full shadow-lg`,
       html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 ${iconSvg}
@@ -194,13 +265,17 @@ const GridMap: React.FC<GridMapProps> = ({
         />
         
         {/* Render feeder markers if filter allows */}
-        {(mapFilter === 'all' || mapFilter === 'feeders') && feeders.map(feeder => (
+        {feeders.filter(feeder => shouldShowItem(feeder, 'feeder')).map(feeder => (
           <Marker 
             key={feeder.id}
             position={feeder.coordinates}
             icon={createFeederIcon(feeder)}
             eventHandlers={{
-              click: () => onSelectFeeder(feeder),
+              click: () => {
+                onSelectFeeder(feeder);
+                setSelectedItem(feeder);
+                setActiveFeederFilter(feeder.id);
+              },
               mouseover: (e) => handleItemHover(feeder, [e.target._latlng.lat, e.target._latlng.lng], (
                 <div className="bg-slate-800 p-2 rounded-md shadow-lg">
                   <div className="font-bold text-white">{feeder.name}</div>
@@ -236,7 +311,7 @@ const GridMap: React.FC<GridMapProps> = ({
         ))}
         
         {/* Render DER asset markers if filter allows */}
-        {(mapFilter === 'all' || mapFilter === 'ders') && derAssets.map(der => (
+        {derAssets.filter(der => shouldShowItem(der, 'der')).map(der => (
           <Marker 
             key={der.id}
             position={der.coordinates}
@@ -275,7 +350,7 @@ const GridMap: React.FC<GridMapProps> = ({
         ))}
         
         {/* Render household markers if filter allows */}
-        {(mapFilter === 'all' || mapFilter === 'households') && households.map(household => (
+        {households.filter(household => shouldShowItem(household, 'household')).map(household => (
           <Marker
             key={household.id}
             position={household.coordinates}
@@ -328,37 +403,58 @@ const GridMap: React.FC<GridMapProps> = ({
         <div className="flex flex-col space-y-2">
           <button 
             className={`px-3 py-1 rounded-md text-sm font-medium ${mapFilter === 'all' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}
-            onClick={() => setMapFilter('all')}
+            onClick={() => {
+              setMapFilter('all');
+              clearFilters();
+            }}
           >
             All
           </button>
           <button 
             className={`px-3 py-1 rounded-md text-sm font-medium ${mapFilter === 'feeders' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}
-            onClick={() => setMapFilter('feeders')}
+            onClick={() => {
+              setMapFilter('feeders');
+              clearFilters();
+            }}
           >
             Feeders
           </button>
           <button 
             className={`px-3 py-1 rounded-md text-sm font-medium ${mapFilter === 'households' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}
-            onClick={() => setMapFilter('households')}
+            onClick={() => {
+              setMapFilter('households');
+              clearFilters();
+            }}
           >
             Households
           </button>
           <button 
             className={`px-3 py-1 rounded-md text-sm font-medium ${mapFilter === 'ders' ? 'bg-blue-600' : 'bg-slate-700 hover:bg-slate-600'}`}
-            onClick={() => setMapFilter('ders')}
+            onClick={() => {
+              setMapFilter('ders');
+              clearFilters();
+            }}
           >
             DERs
           </button>
+          
+          {activeFeederFilter && (
+            <button 
+              className="px-3 py-1 mt-4 rounded-md text-sm font-medium bg-red-600 hover:bg-red-500"
+              onClick={clearFilters}
+            >
+              Clear Filter
+            </button>
+          )}
         </div>
       </div>
 
       {/* Map tooltip */}
       {showTooltip && tooltipContent && (
         <div className="absolute z-[1000] pointer-events-none" style={{
-          left: '50%',
-          top: '50%',
-          transform: 'translate(-50%, -50%)'
+          left: `${tooltipPos[1] * 100}%`,
+          top: `${tooltipPos[0] * 100}%`,
+          transform: 'translate(-50%, -120%)'
         }}>
           {tooltipContent}
         </div>

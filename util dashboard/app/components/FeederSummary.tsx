@@ -93,12 +93,9 @@ const FeederSummary: React.FC<FeederSummaryProps> = ({
             <div className="mt-2">
               <div className="w-full bg-slate-700 rounded-full h-2 mb-1">
                 <div 
-                  className="h-2 rounded-full transition-all duration-500 ease-in-out relative"
+                  className="h-2 rounded-full transition-all duration-500 ease-in-out"
                   style={getProgressBarStyle(feeder)}
                 >
-                  <span className="absolute top-0 right-0 transform translate-y-[-125%] translate-x-[-50%] text-xs font-medium">
-                    {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%
-                  </span>
                 </div>
               </div>
               <div className="flex justify-between text-xs">

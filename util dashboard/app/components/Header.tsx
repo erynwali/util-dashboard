@@ -68,130 +68,139 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Side menu */}
+      {/* Side menu - Overlay with semi-transparent background */}
       {isMenuOpen && (
-        <div className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-slate-800 border-r border-slate-700 z-40 transition-all duration-300 ease-in-out">
-          <div className="flex justify-between items-center p-4 border-b border-slate-700">
-            <h3 className="font-bold">Menu</h3>
-            <button 
-              className="p-1 rounded-md hover:bg-slate-700"
-              onClick={toggleMenu}
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-              </svg>
-            </button>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={toggleMenu}
+        >
+          {/* Actual menu panel that doesn't close when clicked */}
+          <div 
+            className="absolute left-0 top-16 h-[calc(100vh-64px)] w-64 bg-slate-800 border-r border-slate-700 overflow-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b border-slate-700">
+              <h3 className="font-bold">Menu</h3>
+              <button 
+                className="p-1 rounded-md hover:bg-slate-700"
+                onClick={toggleMenu}
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <nav className="p-4">
+              <ul className="space-y-2">
+                <li>
+                  <button 
+                    className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'settings' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                    onClick={() => togglePanel('settings')}
+                  >
+                    <span className="flex items-center">
+                      <SettingsIcon />
+                      <span className="ml-3">Settings</span>
+                    </span>
+                    <svg className={`w-4 h-4 transition-transform ${activePanel === 'settings' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {activePanel === 'settings' && (
+                    <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Interface Settings</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Notification Settings</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Map Settings</button>
+                    </div>
+                  )}
+                </li>
+                <li>
+                  <button 
+                    className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'profile' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                    onClick={() => togglePanel('profile')}
+                  >
+                    <span className="flex items-center">
+                      <ProfileIcon />
+                      <span className="ml-3">Profile</span>
+                    </span>
+                    <svg className={`w-4 h-4 transition-transform ${activePanel === 'profile' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {activePanel === 'profile' && (
+                    <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Account Settings</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Preferences</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Security</button>
+                    </div>
+                  )}
+                </li>
+                <li>
+                  <button 
+                    className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'audit' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                    onClick={() => togglePanel('audit')}
+                  >
+                    <span className="flex items-center">
+                      <AuditIcon />
+                      <span className="ml-3">Audit Logs</span>
+                    </span>
+                    <svg className={`w-4 h-4 transition-transform ${activePanel === 'audit' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {activePanel === 'audit' && (
+                    <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">System Events</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">User Actions</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Alerts</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Export Logs</button>
+                    </div>
+                  )}
+                </li>
+                <li>
+                  <button 
+                    className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'analytics' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                    onClick={() => togglePanel('analytics')}
+                  >
+                    <span className="flex items-center">
+                      <AnalyticsIcon />
+                      <span className="ml-3">Analytics</span>
+                    </span>
+                    <svg className={`w-4 h-4 transition-transform ${activePanel === 'analytics' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {activePanel === 'analytics' && (
+                    <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Load Reports</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Efficiency Metrics</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">DER Performance</button>
+                    </div>
+                  )}
+                </li>
+                <li>
+                  <button 
+                    className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'operations' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                    onClick={() => togglePanel('operations')}
+                  >
+                    <span className="flex items-center">
+                      <OperationsIcon />
+                      <span className="ml-3">Operation Controls</span>
+                    </span>
+                    <svg className={`w-4 h-4 transition-transform ${activePanel === 'operations' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  {activePanel === 'operations' && (
+                    <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Manual Controls</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Schedules</button>
+                      <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Emergency Actions</button>
+                    </div>
+                  )}
+                </li>
+              </ul>
+            </nav>
           </div>
-          <nav className="p-4">
-            <ul className="space-y-2">
-              <li>
-                <button 
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'settings' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => togglePanel('settings')}
-                >
-                  <span className="flex items-center">
-                    <SettingsIcon />
-                    <span className="ml-3">Settings</span>
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'settings' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {activePanel === 'settings' && (
-                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Interface Settings</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Notification Settings</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Map Settings</button>
-                  </div>
-                )}
-              </li>
-              <li>
-                <button 
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'profile' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => togglePanel('profile')}
-                >
-                  <span className="flex items-center">
-                    <ProfileIcon />
-                    <span className="ml-3">Profile</span>
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'profile' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {activePanel === 'profile' && (
-                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Account Settings</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Preferences</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Security</button>
-                  </div>
-                )}
-              </li>
-              <li>
-                <button 
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'audit' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => togglePanel('audit')}
-                >
-                  <span className="flex items-center">
-                    <AuditIcon />
-                    <span className="ml-3">Audit Logs</span>
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'audit' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {activePanel === 'audit' && (
-                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">System Events</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">User Actions</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Alerts</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Export Logs</button>
-                  </div>
-                )}
-              </li>
-              <li>
-                <button 
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'analytics' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => togglePanel('analytics')}
-                >
-                  <span className="flex items-center">
-                    <AnalyticsIcon />
-                    <span className="ml-3">Analytics</span>
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'analytics' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {activePanel === 'analytics' && (
-                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Load Reports</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Efficiency Metrics</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">DER Performance</button>
-                  </div>
-                )}
-              </li>
-              <li>
-                <button 
-                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'operations' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
-                  onClick={() => togglePanel('operations')}
-                >
-                  <span className="flex items-center">
-                    <OperationsIcon />
-                    <span className="ml-3">Operation Controls</span>
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'operations' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                  </svg>
-                </button>
-                {activePanel === 'operations' && (
-                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Manual Controls</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Schedules</button>
-                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Emergency Actions</button>
-                  </div>
-                )}
-              </li>
-            </ul>
-          </nav>
         </div>
       )}
     </header>

@@ -212,6 +212,8 @@ export const activateMitigation = (mitigationId: string) => {
 export const simulateMitigation = (mitigationId: string) => {
   const event = mitigationEvents.find(e => e.id === mitigationId);
   let simulatedFeeders = [...feeders];
+  let simulatedDerAssets = [...derAssets];
+  let simulatedEvents = [...mitigationEvents];
   
   if (event) {
     // Get the feeder that would be affected
@@ -225,6 +227,29 @@ export const simulateMitigation = (mitigationId: string) => {
       
       // Calculate new breach margin
       const breachMargin = ((affectedFeeder.capacity - simulatedProjectedLoad) / affectedFeeder.capacity) * 100;
+      
+      // Update the simulated event status temporarily for UI feedback
+      simulatedEvents = simulatedEvents.map(e => {
+        if (e.id === mitigationId) {
+          return {
+            ...e,
+            status: 'simulated' // Custom status for simulation
+          };
+        }
+        return e;
+      });
+      
+      // Update the simulated DER assets to show them as active
+      simulatedDerAssets = simulatedDerAssets.map(der => {
+        if (event.actionSet.derIds.includes(der.id)) {
+          return {
+            ...der,
+            availability: Math.max(0, der.availability - 15), // Simulate reduced availability
+            simulationActive: true // Add a flag for visual indication
+          };
+        }
+        return der;
+      });
       
       // Create a temporary simulation message
       const simulationMessage: ChatLog = {
@@ -243,24 +268,44 @@ export const simulateMitigation = (mitigationId: string) => {
       // Apply temporary visual updates to show simulation results
       simulatedFeeders = feeders.map(feeder => {
         if (feeder.id === event.feederId) {
+          // Determine if the simulation would resolve the critical state
+          const wouldBeCritical = simulatedProjectedLoad > feeder.capacity * 0.95;
+          
           return {
             ...feeder,
             currentLoad: Number(simulatedLoad.toFixed(1)),
             projectedLoad: Number(simulatedProjectedLoad.toFixed(1)),
             breachMargin: Number(breachMargin.toFixed(1)),
-            critical: simulatedProjectedLoad > feeder.capacity * 0.95
+            critical: wouldBeCritical,
+            simulationActive: true // Add a flag for visual indication
           };
         }
         return feeder;
       });
+      
+      // Create a follow-up recommendation message based on simulation results
+      const recommendationMessage: ChatLog = {
+        id: uuidv4(),
+        timestamp: new Date(Date.now() + 1000).toISOString(),
+        sender: 'agent',
+        message: simulatedLoad < affectedFeeder.capacity * 0.8
+          ? "Simulation indicates the proposed mitigation would effectively reduce load to a safe level. Recommend proceeding with mitigation."
+          : "Simulation indicates the proposed mitigation would help but may not fully resolve the issue. Consider additional measures or the fallback option.",
+        actionMetadata: {
+          type: 'recommendation',
+          feederId: event.feederId
+        }
+      };
+      
+      chatLogs = [...chatLogs, recommendationMessage];
     }
   }
   
   // Return temporary simulation results - original data won't be changed
   return {
     feeders: simulatedFeeders,
-    mitigationEvents,
-    derAssets,
+    mitigationEvents: simulatedEvents,
+    derAssets: simulatedDerAssets,
     chatLogs 
   };
 };
