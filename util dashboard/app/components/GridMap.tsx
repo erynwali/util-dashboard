@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -17,6 +17,74 @@ interface GridMapProps {
 // Map filter options
 export type MapFilterType = 'all' | 'feeders' | 'ders' | 'households';
 
+// Custom tooltip component that follows map coordinates
+const MapTooltip = ({ content, position, map }: { content: React.ReactNode, position: [number, number], map: any }) => {
+  const [pixelPosition, setPixelPosition] = useState<{ x: number, y: number } | null>(null);
+  
+  useEffect(() => {
+    if (map && position) {
+      // Convert the geographic coordinates to pixel coordinates
+      const updatePosition = () => {
+        const point = map.latLngToContainerPoint(L.latLng(position[0], position[1]));
+        setPixelPosition({ x: point.x, y: point.y });
+      };
+      
+      // Initial position
+      updatePosition();
+      
+      // Update position when map moves
+      map.on('move', updatePosition);
+      map.on('zoom', updatePosition);
+      
+      return () => {
+        map.off('move', updatePosition);
+        map.off('zoom', updatePosition);
+      };
+    }
+  }, [map, position]);
+  
+  if (!pixelPosition) return null;
+  
+  return (
+    <div 
+      className="absolute z-[1000] bg-slate-800 p-2 rounded-md shadow-lg pointer-events-none" 
+      style={{
+        left: pixelPosition.x + 'px',
+        top: (pixelPosition.y - 10) + 'px',
+        transform: 'translate(-50%, -100%)'
+      }}
+    >
+      {content}
+    </div>
+  );
+};
+
+// MapController to access map instance
+const MapController = ({ onMapReady }: { onMapReady: (map: any) => void }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    onMapReady(map);
+    
+    const updateOnMapChange = () => {
+      // Force a re-render of tooltip positions
+      map.fire('move');
+    };
+    
+    // Add event listeners for map movements
+    map.on('zoom', updateOnMapChange);
+    map.on('move', updateOnMapChange);
+    
+    return () => {
+      // Clean up event listeners
+      map.off('zoom', updateOnMapChange);
+      map.off('move', updateOnMapChange);
+    };
+  }, [map, onMapReady]);
+  
+  return null;
+};
+
 const GridMap: React.FC<GridMapProps> = ({
   feeders,
   derAssets,
@@ -29,6 +97,7 @@ const GridMap: React.FC<GridMapProps> = ({
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const [tooltipPos, setTooltipPos] = useState<[number, number]>([0, 0]);
   const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
+  const [mapInstance, setMapInstance] = useState<any>(null);
   
   // New state to track the active feeder filter
   const [activeFeederFilter, setActiveFeederFilter] = useState<string | null>(null);
@@ -42,6 +111,7 @@ const GridMap: React.FC<GridMapProps> = ({
     
     if (selectedFeeder) {
       setActiveFeederFilter(selectedFeeder.id);
+      setSelectedItem(selectedFeeder);
     }
   }, [selectedItem, feeders]);
 
@@ -66,14 +136,16 @@ const GridMap: React.FC<GridMapProps> = ({
       // Only show the active feeder
       return item.id === activeFeederFilter;
     } else if (type === 'der') {
-      // Find the mitigation events for the active feeder
+      // Always show DERs when they're part of the filtered feeder's mitigation events
       const feederEvents = mitigationEvents.filter(e => e.feederId === activeFeederFilter);
-      // Show DERs that are used in these events
       const eventDerIds = feederEvents.flatMap(e => e.actionSet.derIds);
-      return eventDerIds.includes(item.id);
+      
+      // When filter is 'all' or 'ders', show DERs connected to the active feeder
+      return (mapFilter === 'all' || mapFilter === 'ders') && eventDerIds.includes(item.id);
     } else if (type === 'household') {
-      // Only show households connected to the active feeder
-      return item.feederId === activeFeederFilter;
+      // Always show households connected to the active feeder
+      // When filter is 'all' or 'households', show households connected to the active feeder
+      return (mapFilter === 'all' || mapFilter === 'households') && item.feederId === activeFeederFilter;
     }
     
     return false;
@@ -257,11 +329,8 @@ const GridMap: React.FC<GridMapProps> = ({
         zoom={13} 
         style={{ height: '100%', width: '100%', zIndex: 10 }}
         zoomControl={false}
-        whenCreated={(mapInstance) => {
-          // Store map instance for tooltip positioning
-          (window as any).mapInstance = mapInstance;
-        }}
       >
+        <MapController onMapReady={setMapInstance} />
         <TileLayer
           attribution={attribution}
           url={darkModeUrl}
@@ -276,8 +345,15 @@ const GridMap: React.FC<GridMapProps> = ({
             eventHandlers={{
               click: () => {
                 onSelectFeeder(feeder);
-                setSelectedItem(feeder);
-                setActiveFeederFilter(feeder.id);
+                if (activeFeederFilter === feeder.id) {
+                  // Clicking the already active feeder will clear the filter
+                  setActiveFeederFilter(null);
+                  setSelectedItem(null);
+                } else {
+                  // Set this feeder as the active filter
+                  setActiveFeederFilter(feeder.id);
+                  setSelectedItem(feeder);
+                }
               },
               mouseover: (e: any) => handleItemHover(feeder, [e.target._latlng.lat, e.target._latlng.lng], (
                 <div className="bg-slate-800 p-2 rounded-md shadow-lg">
@@ -453,15 +529,12 @@ const GridMap: React.FC<GridMapProps> = ({
       </div>
 
       {/* Map tooltip */}
-      {showTooltip && tooltipContent && (
-        <div className="absolute z-[1000] bg-slate-800 p-2 rounded-md shadow-lg pointer-events-none" 
-          style={{
-            position: 'fixed',
-            left: `${window.event?.clientX || 0}px`,
-            top: `${(window.event?.clientY || 0) - 100}px`,
-          }}>
-          {tooltipContent}
-        </div>
+      {showTooltip && tooltipContent && mapInstance && (
+        <MapTooltip 
+          content={tooltipContent}
+          position={tooltipPos}
+          map={mapInstance}
+        />
       )}
     </div>
   );
