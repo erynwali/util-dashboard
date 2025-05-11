@@ -174,7 +174,119 @@ export const activateMitigation = (mitigationId: string) => {
   
   chatLogs = [...chatLogs, activationMessage];
   
+  // Update feeder loads to reflect mitigation effect
+  const event = mitigationEvents.find(e => e.id === mitigationId);
+  if (event) {
+    feeders = feeders.map(feeder => {
+      if (feeder.id === event.feederId) {
+        // Apply load reduction
+        const loadReduction = feeder.currentLoad * (event.actionSet.loadReduction / 100);
+        const newLoad = Math.max(0, feeder.currentLoad - loadReduction);
+        const newProjectedLoad = Math.max(0, feeder.projectedLoad - loadReduction);
+        
+        // Recalculate breach margin
+        const breachMargin = ((feeder.capacity - newProjectedLoad) / feeder.capacity) * 100;
+        
+        // Update critical status
+        const critical = newProjectedLoad > feeder.capacity * 0.95;
+        
+        return {
+          ...feeder,
+          currentLoad: Number(newLoad.toFixed(1)),
+          projectedLoad: Number(newProjectedLoad.toFixed(1)),
+          breachMargin: Number(breachMargin.toFixed(1)),
+          critical
+        };
+      }
+      return feeder;
+    });
+  }
+  
   return mitigationEvents;
+};
+
+/**
+ * Simulates a mitigation event without actually activating it
+ * Returns both the simulated feeders and mitigation events
+ */
+export const simulateMitigation = (mitigationId: string) => {
+  const event = mitigationEvents.find(e => e.id === mitigationId);
+  let simulatedFeeders = [...feeders];
+  
+  if (event) {
+    // Get the feeder that would be affected
+    const affectedFeeder = feeders.find(f => f.id === event.feederId);
+    
+    if (affectedFeeder) {
+      // Calculate potential load reduction
+      const loadReduction = affectedFeeder.currentLoad * (event.actionSet.loadReduction / 100);
+      const simulatedLoad = Math.max(0, affectedFeeder.currentLoad - loadReduction);
+      const simulatedProjectedLoad = Math.max(0, affectedFeeder.projectedLoad - loadReduction);
+      
+      // Calculate new breach margin
+      const breachMargin = ((affectedFeeder.capacity - simulatedProjectedLoad) / affectedFeeder.capacity) * 100;
+      
+      // Create a temporary simulation message
+      const simulationMessage: ChatLog = {
+        id: uuidv4(),
+        timestamp: new Date().toISOString(),
+        sender: 'agent',
+        message: `Simulation results: Load would be reduced from ${affectedFeeder.currentLoad.toFixed(1)}kW (${Math.round((affectedFeeder.currentLoad/affectedFeeder.capacity)*100)}%) to ${simulatedLoad.toFixed(1)}kW (${Math.round((simulatedLoad/affectedFeeder.capacity)*100)}%). Breach margin would improve from ${affectedFeeder.breachMargin.toFixed(1)}% to ${breachMargin.toFixed(1)}%.`,
+        actionMetadata: {
+          type: 'action',
+          feederId: event.feederId
+        }
+      };
+      
+      chatLogs = [...chatLogs, simulationMessage];
+      
+      // Apply temporary visual updates to show simulation results
+      simulatedFeeders = feeders.map(feeder => {
+        if (feeder.id === event.feederId) {
+          return {
+            ...feeder,
+            currentLoad: Number(simulatedLoad.toFixed(1)),
+            projectedLoad: Number(simulatedProjectedLoad.toFixed(1)),
+            breachMargin: Number(breachMargin.toFixed(1)),
+            critical: simulatedProjectedLoad > feeder.capacity * 0.95
+          };
+        }
+        return feeder;
+      });
+    }
+  }
+  
+  // Return temporary simulation results - original data won't be changed
+  return {
+    feeders: simulatedFeeders,
+    mitigationEvents,
+    derAssets,
+    chatLogs 
+  };
+};
+
+/**
+ * Simulate feedback option
+ */
+export const simulateFeedback = (feedbackMessage: string) => {
+  // Add user feedback to chat
+  const userFeedback: ChatLog = {
+    id: uuidv4(),
+    timestamp: new Date().toISOString(),
+    sender: 'operator',
+    message: feedbackMessage
+  };
+  
+  // Add agent response to the feedback
+  const agentResponse: ChatLog = {
+    id: uuidv4(),
+    timestamp: new Date(Date.now() + 2000).toISOString(),
+    sender: 'agent',
+    message: 'Thank you for your feedback. I will adjust future recommendations based on your input.'
+  };
+  
+  chatLogs = [...chatLogs, userFeedback, agentResponse];
+  return chatLogs;
 };
 
 /**

@@ -108,6 +108,72 @@ export const dummyFeeders: Feeder[] = [
     breachMargin: 33.3,
     critical: false,
     coordinates: [37.7749, -122.4094]
+  },
+  {
+    id: 'feeder-5',
+    name: 'Marina District Feeder',
+    region: 'North',
+    capacity: 85,
+    currentLoad: 72,
+    projectedLoad: 80,
+    breachMargin: 5.9,
+    critical: false,
+    coordinates: [37.8030, -122.4350]
+  },
+  {
+    id: 'feeder-6',
+    name: 'Mission District Feeder',
+    region: 'Central',
+    capacity: 110,
+    currentLoad: 95,
+    projectedLoad: 107,
+    breachMargin: 2.7,
+    critical: true,
+    coordinates: [37.7590, -122.4150]
+  },
+  {
+    id: 'feeder-7',
+    name: 'Richmond District Feeder',
+    region: 'West',
+    capacity: 95,
+    currentLoad: 60,
+    projectedLoad: 72,
+    breachMargin: 24.2,
+    critical: false,
+    coordinates: [37.7800, -122.4850]
+  },
+  {
+    id: 'feeder-8',
+    name: 'Sunset District Feeder',
+    region: 'West',
+    capacity: 80,
+    currentLoad: 65,
+    projectedLoad: 70,
+    breachMargin: 12.5,
+    critical: false,
+    coordinates: [37.7550, -122.4850]
+  },
+  {
+    id: 'feeder-9',
+    name: 'SoMa District Feeder',
+    region: 'Central',
+    capacity: 130,
+    currentLoad: 115,
+    projectedLoad: 125,
+    breachMargin: 3.8,
+    critical: true,
+    coordinates: [37.7790, -122.3970]
+  },
+  {
+    id: 'feeder-10',
+    name: 'Bayview District Feeder',
+    region: 'South',
+    capacity: 75,
+    currentLoad: 50,
+    projectedLoad: 65,
+    breachMargin: 13.3,
+    critical: false,
+    coordinates: [37.7350, -122.3890]
   }
 ];
 
@@ -161,6 +227,106 @@ export const dummyDerAssets: DerAsset[] = [
     availability: 60,
     trustScore: 75,
     capacity: 18
+  },
+  {
+    id: 'der-6',
+    type: 'battery',
+    name: 'Marina Energy Storage',
+    location: 'Marina District',
+    coordinates: [37.8020, -122.4340],
+    availability: 95,
+    trustScore: 92,
+    capacity: 22
+  },
+  {
+    id: 'der-7',
+    type: 'EV',
+    name: 'Mission EV Charging',
+    location: 'Mission District',
+    coordinates: [37.7580, -122.4140],
+    availability: 80,
+    trustScore: 88,
+    capacity: 16
+  },
+  {
+    id: 'der-8',
+    type: 'thermostat',
+    name: 'Richmond Smart Thermostats',
+    location: 'Richmond District',
+    coordinates: [37.7810, -122.4840],
+    availability: 90,
+    trustScore: 85,
+    capacity: 12
+  },
+  {
+    id: 'der-9',
+    type: 'battery',
+    name: 'Sunset Community Battery',
+    location: 'Sunset District',
+    coordinates: [37.7560, -122.4840],
+    availability: 85,
+    trustScore: 90,
+    capacity: 18
+  },
+  {
+    id: 'der-10',
+    type: 'EV',
+    name: 'SoMa Business Fleet',
+    location: 'SoMa District',
+    coordinates: [37.7780, -122.3960],
+    availability: 70,
+    trustScore: 82,
+    capacity: 20
+  },
+  {
+    id: 'der-11',
+    type: 'thermostat',
+    name: 'Bayview Smart Buildings',
+    location: 'Bayview District',
+    coordinates: [37.7340, -122.3880],
+    availability: 95,
+    trustScore: 78,
+    capacity: 14
+  },
+  {
+    id: 'der-12',
+    type: 'battery',
+    name: 'Potrero Hill Storage',
+    location: 'Potrero District',
+    coordinates: [37.7610, -122.4000],
+    availability: 88,
+    trustScore: 86,
+    capacity: 15
+  },
+  {
+    id: 'der-13',
+    type: 'EV',
+    name: 'Embarcadero Charging Hub',
+    location: 'Financial District',
+    coordinates: [37.7940, -122.3980],
+    availability: 75,
+    trustScore: 90,
+    capacity: 25
+  },
+  {
+    id: 'der-14',
+    type: 'thermostat',
+    name: 'Nob Hill Hotel Thermostats',
+    location: 'Nob Hill',
+    coordinates: [37.7930, -122.4160],
+    availability: 92,
+    trustScore: 88,
+    capacity: 16
+  },
+  {
+    id: 'der-15',
+    type: 'battery',
+    name: 'Haight Street Battery',
+    location: 'Haight-Ashbury',
+    coordinates: [37.7690, -122.4480],
+    availability: 80,
+    trustScore: 85,
+    capacity: 14
   }
 ];
 

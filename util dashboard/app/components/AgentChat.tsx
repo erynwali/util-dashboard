@@ -2,7 +2,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatLog, Feeder, MitigationEvent } from '../data/dummyData';
-import { activateMitigation, activateFallback, addOperatorChatMessage } from '../utils/simulation';
+import { 
+  activateMitigation, 
+  activateFallback, 
+  addOperatorChatMessage,
+  simulateMitigation,
+  simulateFeedback
+} from '../utils/simulation';
 
 interface AgentChatProps {
   chatLogs: ChatLog[];
@@ -55,6 +61,13 @@ const AgentChat: React.FC<AgentChatProps> = ({
       const updatedEvents = activateFallback(mitigationId);
       setMitigationEvents(updatedEvents);
       onShowFallback();
+    } else if (action === 'simulate') {
+      // Simulate the mitigation event
+      const simulationResult = simulateMitigation(mitigationId);
+      setChatLogs(simulationResult.chatLogs);
+      
+      // Temporarily update the UI to show simulation results
+      setMitigationEvents(simulationResult.mitigationEvents);
     }
   };
   

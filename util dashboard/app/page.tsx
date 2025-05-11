@@ -29,6 +29,9 @@ export default function Home() {
   // Selected items for details
   const [selectedFeeder, setSelectedFeeder] = useState<Feeder | null>(null);
   const [selectedDer, setSelectedDer] = useState<DerAsset | null>(null);
+  
+  // State for panel visibility
+  const [activeLeftPanel, setActiveLeftPanel] = useState<'feeder' | 'audit'>('feeder');
 
   // Initialize data and setup interval for simulation
   useEffect(() => {
@@ -85,15 +88,37 @@ export default function Home() {
       <div className="flex flex-1 gap-4 p-4 h-[calc(100vh-64px)]">
         {/* Left panel: Feeder summary and audit trail */}
         <div className="flex flex-col w-1/4 gap-4 h-full">
-          <FeederSummary 
-            feeders={feeders} 
-            selectedFeeder={selectedFeeder}
-            setSelectedFeeder={setSelectedFeeder}
-          />
-          <AuditTrail 
-            mitigationEvents={mitigationEvents}
-            feeders={feeders}
-          />
+          {/* Panel tabs */}
+          <div className="flex bg-slate-800 rounded-lg overflow-hidden">
+            <button 
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${activeLeftPanel === 'feeder' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-slate-700'}`}
+              onClick={() => setActiveLeftPanel('feeder')}
+            >
+              Feeder Summary
+            </button>
+            <button 
+              className={`flex-1 py-2 text-sm font-medium transition-colors ${activeLeftPanel === 'audit' ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-slate-700'}`}
+              onClick={() => setActiveLeftPanel('audit')}
+            >
+              Audit Trail
+            </button>
+          </div>
+          
+          {/* Conditional panel content */}
+          <div className="flex-1 overflow-hidden">
+            {activeLeftPanel === 'feeder' ? (
+              <FeederSummary 
+                feeders={feeders} 
+                selectedFeeder={selectedFeeder}
+                setSelectedFeeder={setSelectedFeeder}
+              />
+            ) : (
+              <AuditTrail 
+                mitigationEvents={mitigationEvents}
+                feeders={feeders}
+              />
+            )}
+          </div>
         </div>
         
         {/* Center panel: Interactive map */}

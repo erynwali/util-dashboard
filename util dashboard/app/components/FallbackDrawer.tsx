@@ -37,8 +37,8 @@ const FallbackDrawer: React.FC<FallbackDrawerProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[2000]">
+      <div className="bg-slate-800 w-11/12 max-w-4xl rounded-lg shadow-xl overflow-hidden">
         <div className="p-4 border-b border-slate-700 flex justify-between items-center">
           <h2 className="text-xl font-bold text-white">
             Fallback Tiers

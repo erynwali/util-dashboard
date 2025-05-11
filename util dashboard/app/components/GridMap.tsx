@@ -185,7 +185,7 @@ const GridMap: React.FC<GridMapProps> = ({
       <MapContainer 
         center={[37.7749, -122.4194]} 
         zoom={13} 
-        style={{ height: '100%', width: '100%' }}
+        style={{ height: '100%', width: '100%', zIndex: 10 }}
         zoomControl={false}
       >
         <TileLayer

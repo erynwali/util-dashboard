@@ -110,7 +110,7 @@ const AuditTrail: React.FC<AuditTrailProps> = ({ mitigationEvents, feeders }) =>
   }, {} as Record<string, MitigationEvent[]>);
 
   return (
-    <div className="bg-slate-800 rounded-lg shadow-lg p-4 flex-1 flex flex-col">
+    <div className="bg-slate-800 rounded-lg shadow-lg p-4 flex-1 flex flex-col h-full">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-bold text-white">
           Audit Trail
@@ -119,7 +119,7 @@ const AuditTrail: React.FC<AuditTrailProps> = ({ mitigationEvents, feeders }) =>
       </div>
       
       {mitigationEvents.length > 0 ? (
-        <div className="overflow-y-auto scrollbar-thin flex-1 -mx-2 px-2">
+        <div className="overflow-y-auto scrollbar-thin flex-1 -mx-2 px-2 max-h-full pb-2">
           {Object.entries(groupedEvents).map(([date, events]) => (
             <div key={date} className="mb-4">
               <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">{date}</div>

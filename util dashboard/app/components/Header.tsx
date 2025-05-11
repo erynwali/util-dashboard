@@ -71,270 +71,127 @@ const Header: React.FC = () => {
       {/* Side menu */}
       {isMenuOpen && (
         <div className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-slate-800 border-r border-slate-700 z-40 transition-all duration-300 ease-in-out">
+          <div className="flex justify-between items-center p-4 border-b border-slate-700">
+            <h3 className="font-bold">Menu</h3>
+            <button 
+              className="p-1 rounded-md hover:bg-slate-700"
+              onClick={toggleMenu}
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
           <nav className="p-4">
             <ul className="space-y-2">
               <li>
                 <button 
-                  className={`w-full flex items-center px-4 py-2 rounded-md ${activePanel === 'settings' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'settings' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
                   onClick={() => togglePanel('settings')}
                 >
-                  <SettingsIcon />
-                  <span className="ml-3">Settings</span>
+                  <span className="flex items-center">
+                    <SettingsIcon />
+                    <span className="ml-3">Settings</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'settings' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
+                {activePanel === 'settings' && (
+                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Interface Settings</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Notification Settings</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Map Settings</button>
+                  </div>
+                )}
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center px-4 py-2 rounded-md ${activePanel === 'profile' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'profile' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
                   onClick={() => togglePanel('profile')}
                 >
-                  <ProfileIcon />
-                  <span className="ml-3">Profile</span>
+                  <span className="flex items-center">
+                    <ProfileIcon />
+                    <span className="ml-3">Profile</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'profile' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
+                {activePanel === 'profile' && (
+                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Account Settings</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Preferences</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Security</button>
+                  </div>
+                )}
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center px-4 py-2 rounded-md ${activePanel === 'audit' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'audit' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
                   onClick={() => togglePanel('audit')}
                 >
-                  <AuditIcon />
-                  <span className="ml-3">Audit Logs</span>
+                  <span className="flex items-center">
+                    <AuditIcon />
+                    <span className="ml-3">Audit Logs</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'audit' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
+                {activePanel === 'audit' && (
+                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">System Events</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">User Actions</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Alerts</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Export Logs</button>
+                  </div>
+                )}
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center px-4 py-2 rounded-md ${activePanel === 'analytics' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'analytics' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
                   onClick={() => togglePanel('analytics')}
                 >
-                  <AnalyticsIcon />
-                  <span className="ml-3">Analytics</span>
+                  <span className="flex items-center">
+                    <AnalyticsIcon />
+                    <span className="ml-3">Analytics</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'analytics' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
+                {activePanel === 'analytics' && (
+                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Load Reports</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Efficiency Metrics</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">DER Performance</button>
+                  </div>
+                )}
               </li>
               <li>
                 <button 
-                  className={`w-full flex items-center px-4 py-2 rounded-md ${activePanel === 'operations' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
+                  className={`w-full flex items-center justify-between px-4 py-2 rounded-md ${activePanel === 'operations' ? 'bg-blue-700' : 'hover:bg-slate-700'}`}
                   onClick={() => togglePanel('operations')}
                 >
-                  <OperationsIcon />
-                  <span className="ml-3">Operation Controls</span>
+                  <span className="flex items-center">
+                    <OperationsIcon />
+                    <span className="ml-3">Operation Controls</span>
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${activePanel === 'operations' ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                  </svg>
                 </button>
+                {activePanel === 'operations' && (
+                  <div className="mt-2 ml-6 pl-3 border-l border-slate-700 space-y-2">
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Manual Controls</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Schedules</button>
+                    <button className="w-full text-left py-1 px-2 text-sm rounded hover:bg-slate-700">Emergency Actions</button>
+                  </div>
+                )}
               </li>
             </ul>
           </nav>
-        </div>
-      )}
-
-      {/* Settings Panel */}
-      {activePanel === 'settings' && (
-        <div className="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-slate-900 border-l border-slate-700 z-30 overflow-y-auto scrollbar-thin p-4">
-          <h2 className="text-xl font-bold mb-4">Settings</h2>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Theme</h3>
-              <div className="flex space-x-2">
-                <button className="px-3 py-2 bg-slate-800 rounded-md">Dark</button>
-                <button className="px-3 py-2 bg-slate-700 rounded-md">Light</button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Notifications</h3>
-              <div className="flex items-center">
-                <input type="checkbox" id="pushNotifications" className="mr-2" />
-                <label htmlFor="pushNotifications">Push Notifications</label>
-              </div>
-              <div className="flex items-center">
-                <input type="checkbox" id="emailAlerts" className="mr-2" />
-                <label htmlFor="emailAlerts">Email Alerts</label>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Map Settings</h3>
-              <div className="flex items-center">
-                <input type="checkbox" id="showLabels" className="mr-2" />
-                <label htmlFor="showLabels">Show Labels</label>
-              </div>
-              <div className="flex items-center">
-                <input type="checkbox" id="animateIcons" className="mr-2" />
-                <label htmlFor="animateIcons">Animate Icons</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Profile Panel */}
-      {activePanel === 'profile' && (
-        <div className="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-slate-900 border-l border-slate-700 z-30 overflow-y-auto scrollbar-thin p-4">
-          <h2 className="text-xl font-bold mb-4">Profile</h2>
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-bold">JS</span>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">John Smith</h3>
-              <p className="text-slate-400">Grid Operator</p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm text-slate-400">Email</h4>
-              <p>john.smith@utility.com</p>
-            </div>
-            <div>
-              <h4 className="text-sm text-slate-400">Phone</h4>
-              <p>(555) 123-4567</p>
-            </div>
-            <div>
-              <h4 className="text-sm text-slate-400">Location</h4>
-              <p>Central Control Facility</p>
-            </div>
-            <div>
-              <h4 className="text-sm text-slate-400">Access Level</h4>
-              <p>Level 3 (Administrator)</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Audit Logs Panel */}
-      {activePanel === 'audit' && (
-        <div className="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-slate-900 border-l border-slate-700 z-30 overflow-y-auto scrollbar-thin p-4">
-          <h2 className="text-xl font-bold mb-4">Audit Logs</h2>
-          <div className="space-y-4">
-            {[...Array(10)].map((_, i) => (
-              <div key={i} className="p-3 bg-slate-800 rounded-md">
-                <div className="flex justify-between">
-                  <span className="text-sm font-semibold">{new Date(Date.now() - i * 3600000).toLocaleTimeString()}</span>
-                  <span className={`text-xs px-2 py-1 rounded-full ${i % 3 === 0 ? 'bg-blue-600' : i % 3 === 1 ? 'bg-green-600' : 'bg-yellow-600'}`}>
-                    {i % 3 === 0 ? 'System' : i % 3 === 1 ? 'User' : 'Alert'}
-                  </span>
-                </div>
-                <p className="text-sm mt-1">
-                  {i % 3 === 0 ? 'System performed automated load balancing.' : 
-                   i % 3 === 1 ? 'User approved mitigation action for Feeder #2.' : 
-                   'Alert triggered for critical load threshold on East Grid.'}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Analytics Panel */}
-      {activePanel === 'analytics' && (
-        <div className="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-slate-900 border-l border-slate-700 z-30 overflow-y-auto scrollbar-thin p-4">
-          <h2 className="text-xl font-bold mb-4">Analytics</h2>
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Load Patterns</h3>
-              <div className="h-40 bg-slate-800 rounded-md flex items-end p-2 space-x-1">
-                {[40, 35, 60, 75, 65, 80, 90, 85, 70, 60, 55, 65].map((height, i) => (
-                  <div 
-                    key={i} 
-                    className="bg-blue-600 w-full rounded-t-sm"
-                    style={{ height: `${height}%` }}
-                  ></div>
-                ))}
-              </div>
-              <div className="text-sm text-center mt-1">Last 12 hours</div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">DER Reliability</h3>
-              <div className="flex items-center justify-between bg-slate-800 rounded-md p-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-500">95%</div>
-                  <div className="text-xs">Batteries</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-500">78%</div>
-                  <div className="text-xs">EVs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-500">88%</div>
-                  <div className="text-xs">Thermostats</div>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold mb-2">Mitigation Statistics</h3>
-              <div className="bg-slate-800 rounded-md p-4 space-y-2">
-                <div className="flex justify-between">
-                  <span>Total Events:</span>
-                  <span>24</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Successful:</span>
-                  <span className="text-green-500">21</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Failed:</span>
-                  <span className="text-red-500">3</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Average Response:</span>
-                  <span>1.2 min</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Operation Controls Panel */}
-      {activePanel === 'operations' && (
-        <div className="fixed right-0 top-16 h-[calc(100vh-64px)] w-80 bg-slate-900 border-l border-slate-700 z-30 overflow-y-auto scrollbar-thin p-4">
-          <h2 className="text-xl font-bold mb-4">Operation Controls</h2>
-          <div className="space-y-4">
-            <div className="bg-slate-800 p-3 rounded-md">
-              <h3 className="font-semibold">Emergency Load Shed</h3>
-              <p className="text-sm text-slate-400 mb-2">Activate emergency protocols for immediate load reduction</p>
-              <div className="flex items-center space-x-2">
-                <select className="bg-slate-700 rounded-md px-2 py-1 text-sm">
-                  <option>Tier 1 (5%)</option>
-                  <option>Tier 2 (10%)</option>
-                  <option>Tier 3 (20%)</option>
-                </select>
-                <button className="bg-red-600 px-3 py-1 rounded-md text-sm">Activate</button>
-              </div>
-            </div>
-            
-            <div className="bg-slate-800 p-3 rounded-md">
-              <h3 className="font-semibold">DER Control</h3>
-              <p className="text-sm text-slate-400 mb-2">Manage distributed energy resources</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span>Battery Discharge</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>EV Charging Pause</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Thermostat Adjust</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-slate-800 p-3 rounded-md">
-              <h3 className="font-semibold">Grid Configuration</h3>
-              <p className="text-sm text-slate-400 mb-2">Adjust grid topology and settings</p>
-              <div className="space-y-2">
-                <button className="w-full bg-blue-600 px-3 py-1 rounded-md text-sm">Reconfigure Mesh Network</button>
-                <button className="w-full bg-slate-700 px-3 py-1 rounded-md text-sm">Run Diagnostics</button>
-                <button className="w-full bg-slate-700 px-3 py-1 rounded-md text-sm">Grid Health Check</button>
-              </div>
-            </div>
-          </div>
         </div>
       )}
     </header>
