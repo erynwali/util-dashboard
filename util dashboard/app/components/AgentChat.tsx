@@ -30,7 +30,7 @@ const AgentChat: React.FC<AgentChatProps> = ({
   const [inputMessage, setInputMessage] = useState('');
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [isThinking, setIsThinking] = useState(false);
-  const [chatDisabled] = useState(true);
+  const [chatDisabled] = useState(false);
   
   // Scroll to bottom whenever chat logs update
   useEffect(() => {

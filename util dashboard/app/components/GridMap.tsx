@@ -36,7 +36,7 @@ const GridMap: React.FC<GridMapProps> = ({
   // Effect to reset filter when selected feeder changes
   useEffect(() => {
     // When a feeder is selected from outside, apply the filter
-    const selectedFeeder = feeders.find(f => 
+    const selectedFeeder = feeders.find((f: Feeder) => 
       f === selectedItem || (selectedItem && f.id === selectedItem.id)
     );
     
@@ -95,16 +95,15 @@ const GridMap: React.FC<GridMapProps> = ({
     });
   }, []);
 
-  // Function to handle hovering over map items
-  const handleItemHover = (item: any, position: [number, number], content: React.ReactNode) => {
-    setSelectedItem(item);
-    setTooltipPos(position);
+  // Handle hover events for map items
+  const handleItemHover = (item: any, coordinates: [number, number], content: React.ReactNode) => {
     setTooltipContent(content);
+    setTooltipPos(coordinates);
     setShowTooltip(true);
   };
 
-  // Function to handle mouse leave
-  const handleItemLeave = () => {
+  // Handle item leave (mouse out)
+  const handleItemLeave = (e: any) => {
     setShowTooltip(false);
   };
 
@@ -225,16 +224,16 @@ const GridMap: React.FC<GridMapProps> = ({
     const households: { id: string; feederId: string; coordinates: [number, number]; derCount: number }[] = [];
     
     feeders.forEach(feeder => {
-      // Generate 10-20 households per feeder
-      const householdCount = Math.floor(Math.random() * 11) + 10; // 10-20
+      // Generate 3-5 households per feeder (reduced from 10-20)
+      const householdCount = Math.floor(Math.random() * 3) + 3; // 3-5
       
       for (let i = 0; i < householdCount; i++) {
         // Generate random coordinates close to the feeder
         const lat = feeder.coordinates[0] + (Math.random() - 0.5) * 0.02;
         const lng = feeder.coordinates[1] + (Math.random() - 0.5) * 0.02;
         
-        // Randomize DER count per household (3-5)
-        const derCount = Math.floor(Math.random() * 3) + 3; // 3-5
+        // Randomize DER count per household (2-3 instead of 3-5)
+        const derCount = Math.floor(Math.random() * 2) + 2; // 2-3
         
         households.push({
           id: `household-${feeder.id}-${i}`,
@@ -258,6 +257,10 @@ const GridMap: React.FC<GridMapProps> = ({
         zoom={13} 
         style={{ height: '100%', width: '100%', zIndex: 10 }}
         zoomControl={false}
+        whenCreated={(mapInstance) => {
+          // Store map instance for tooltip positioning
+          (window as any).mapInstance = mapInstance;
+        }}
       >
         <TileLayer
           attribution={attribution}
@@ -276,7 +279,7 @@ const GridMap: React.FC<GridMapProps> = ({
                 setSelectedItem(feeder);
                 setActiveFeederFilter(feeder.id);
               },
-              mouseover: (e) => handleItemHover(feeder, [e.target._latlng.lat, e.target._latlng.lng], (
+              mouseover: (e: any) => handleItemHover(feeder, [e.target._latlng.lat, e.target._latlng.lng], (
                 <div className="bg-slate-800 p-2 rounded-md shadow-lg">
                   <div className="font-bold text-white">{feeder.name}</div>
                   <div className="text-gray-300">Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
@@ -318,7 +321,7 @@ const GridMap: React.FC<GridMapProps> = ({
             icon={createDerIcon(der)}
             eventHandlers={{
               click: () => onSelectDer(der),
-              mouseover: (e) => handleItemHover(der, [e.target._latlng.lat, e.target._latlng.lng], (
+              mouseover: (e: any) => handleItemHover(der, [e.target._latlng.lat, e.target._latlng.lng], (
                 <div className="bg-slate-800 p-2 rounded-md shadow-lg">
                   <div className="font-bold text-white">{der.name}</div>
                   <div className="text-gray-300">Type: {der.type}</div>
@@ -356,7 +359,7 @@ const GridMap: React.FC<GridMapProps> = ({
             position={household.coordinates}
             icon={createHouseholdIcon()}
             eventHandlers={{
-              mouseover: (e) => handleItemHover(household, [e.target._latlng.lat, e.target._latlng.lng], (
+              mouseover: (e: any) => handleItemHover(household, [e.target._latlng.lat, e.target._latlng.lng], (
                 <div className="bg-slate-800 p-2 rounded-md shadow-lg">
                   <div className="font-bold text-white">Household</div>
                   <div className="text-gray-300">DER Count: {household.derCount}</div>
@@ -368,7 +371,7 @@ const GridMap: React.FC<GridMapProps> = ({
             <Popup>
               <div className="text-slate-800">
                 <div className="font-bold">Household</div>
-                <div>Connected to: {feeders.find(f => f.id === household.feederId)?.name}</div>
+                <div>Connected to: {feeders.find((f: Feeder) => f.id === household.feederId)?.name}</div>
                 <div>DER Count: {household.derCount}</div>
               </div>
             </Popup>
@@ -379,7 +382,7 @@ const GridMap: React.FC<GridMapProps> = ({
         {mitigationEvents
           .filter(event => event.status === 'active')
           .map(event => {
-            const feeder = feeders.find(f => f.id === event.feederId);
+            const feeder = feeders.find((f: Feeder) => f.id === event.feederId);
             if (!feeder) return null;
             
             return (
@@ -451,11 +454,12 @@ const GridMap: React.FC<GridMapProps> = ({
 
       {/* Map tooltip */}
       {showTooltip && tooltipContent && (
-        <div className="absolute z-[1000] pointer-events-none" style={{
-          left: `${tooltipPos[1] * 100}%`,
-          top: `${tooltipPos[0] * 100}%`,
-          transform: 'translate(-50%, -120%)'
-        }}>
+        <div className="absolute z-[1000] bg-slate-800 p-2 rounded-md shadow-lg pointer-events-none" 
+          style={{
+            position: 'fixed',
+            left: `${window.event?.clientX || 0}px`,
+            top: `${(window.event?.clientY || 0) - 100}px`,
+          }}>
           {tooltipContent}
         </div>
       )}
