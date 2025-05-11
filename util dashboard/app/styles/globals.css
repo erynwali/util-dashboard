@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-normal: 22, 163, 74; /* green-600 */
+  --color-warning: 250, 204, 21; /* yellow-400 */
+  --color-critical: 220, 38, 38; /* red-600 */
+  --color-fallback: 59, 130, 246; /* blue-500 */
+}
+
+body {
+  color: rgb(255, 255, 255);
+  background: rgb(15, 23, 42);
+}
+
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* Add marker colors */
+.marker-normal {
+  background-color: rgb(var(--color-normal));
+  border: 2px solid rgba(var(--color-normal), 0.5);
+}
+
+.marker-warning {
+  background-color: rgb(var(--color-warning));
+  border: 2px solid rgba(var(--color-warning), 0.5);
+}
+
+.marker-critical {
+  background-color: rgb(var(--color-critical));
+  border: 2px solid rgba(var(--color-critical), 0.5);
+}
+
+.marker-fallback {
+  background-color: rgb(var(--color-fallback));
+  border: 2px solid rgba(var(--color-fallback), 0.5);
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Tooltip styles */
+.tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip .tooltip-content {
+  visibility: hidden;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  border-radius: 4px;
+  padding: 5px 10px;
+  position: absolute;
+  z-index: 1000;
+  top: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+
+.tooltip:hover .tooltip-content {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Transition for chat messages */
+.chat-message-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.chat-message-enter-active {
+  opacity: 1;
+  transform: translateY(0px);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Pulse animation for critical indicators */
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--color-critical), 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--color-critical), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--color-critical), 0);
+  }
+}
+
+.pulse-critical {
+  animation: pulse 2s infinite;
+} 
