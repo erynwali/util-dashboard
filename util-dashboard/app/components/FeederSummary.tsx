@@ -76,7 +76,13 @@ const FeederSummary: React.FC<FeederSummaryProps> = ({
                 // Verify we have a valid feeder before selection
                 if (feeder && feeder.id) {
                   console.log('Selecting feeder:', feeder.id, feeder.name);
-                  setSelectedFeeder(feeder);
+                  
+                  // If clicking the already selected feeder, deselect it
+                  if (selectedFeeder && selectedFeeder.id === feeder.id) {
+                    setSelectedFeeder(null);
+                  } else {
+                    setSelectedFeeder(feeder);
+                  }
                 }
               } catch (error) {
                 console.error("Error selecting feeder:", error);

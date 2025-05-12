@@ -178,6 +178,8 @@ const GridMap: React.FC<GridMapProps> = ({
   const clearFilters = () => {
     setActiveFeederFilter(null);
     setSelectedItem(null);
+    // Also clear the parent component's selection
+    onSelectFeeder(null);
   };
 
   // Function to determine if an item should be displayed based on current filters
@@ -421,6 +423,12 @@ const GridMap: React.FC<GridMapProps> = ({
     if (!feeder || !feeder.id) return;
     
     try {
+      // If the feeder is already selected, deselect it
+      if (selectedItem && selectedItem.id === feeder.id) {
+        clearFilters();
+        return;
+      }
+      
       setSelectedItem(feeder);
       setActiveFeederFilter(feeder.id);
       onSelectFeeder(feeder);
@@ -456,6 +464,23 @@ const GridMap: React.FC<GridMapProps> = ({
     }
   };
 
+  // Add a new useEffect to reset map view when filters are cleared
+  useEffect(() => {
+    if (!activeFeederFilter && !selectedItem && mapInstance) {
+      // When filters are cleared, reset the map view
+      try {
+        setTimeout(() => {
+          mapInstance.flyTo([37.7749, -122.4194], 13, {
+            animate: true,
+            duration: 1
+          });
+        }, 100);
+      } catch (error) {
+        console.error("Error resetting map view on filter clear:", error);
+      }
+    }
+  }, [activeFeederFilter, selectedItem, mapInstance]);
+
   return (
     <div className="relative h-full w-full">
       <MapErrorBoundary fallback={<GridMapFallback />}>
@@ -467,6 +492,10 @@ const GridMap: React.FC<GridMapProps> = ({
           whenCreated={(map) => {
             setMapInstance(map);
           }}
+          // Add these options to improve performance
+          preferCanvas={true}
+          updateWhenZooming={false}
+          updateWhenIdle={true}
         >
           <MapController onMapReady={(map) => {
             setMapInstance(map);
@@ -632,7 +661,12 @@ const GridMap: React.FC<GridMapProps> = ({
           
           {/* Render active mitigation zones as circles */}
           {mitigationEvents
-            .filter(event => event.status === 'active')
+            .filter(event => {
+              // Only show mitigation events that are active AND
+              // either no filter is active OR the event belongs to the selected feeder
+              return event.status === 'active' && 
+                     (!activeFeederFilter || event.feederId === activeFeederFilter);
+            })
             .map(event => {
               const feeder = feeders.find((f: Feeder) => f.id === event.feederId);
               
@@ -643,6 +677,11 @@ const GridMap: React.FC<GridMapProps> = ({
                   feeder.coordinates.length !== 2 ||
                   isNaN(parseFloat(String(feeder.coordinates[0]))) ||
                   isNaN(parseFloat(String(feeder.coordinates[1])))) {
+                return null;
+              }
+              
+              // Only render if this event's feeder is visible based on current filters
+              if (!shouldShowItem(feeder, 'feeder')) {
                 return null;
               }
               
@@ -671,6 +710,17 @@ const GridMap: React.FC<GridMapProps> = ({
             onClick={() => {
               setMapFilter('all');
               clearFilters();
+              // When clicking All, reset the view to show the entire area
+              if (mapInstance) {
+                try {
+                  mapInstance.flyTo([37.7749, -122.4194], 13, {
+                    animate: true,
+                    duration: 1
+                  });
+                } catch (error) {
+                  console.error("Error resetting map view:", error);
+                }
+              }
             }}
           >
             All
