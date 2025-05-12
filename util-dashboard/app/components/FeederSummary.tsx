@@ -71,7 +71,17 @@ const FeederSummary: React.FC<FeederSummaryProps> = ({
         {sortedFeeders.map((feeder) => (
           <div 
             key={feeder.id}
-            onClick={() => setSelectedFeeder(feeder)}
+            onClick={() => {
+              try {
+                // Verify we have a valid feeder before selection
+                if (feeder && feeder.id) {
+                  console.log('Selecting feeder:', feeder.id, feeder.name);
+                  setSelectedFeeder(feeder);
+                }
+              } catch (error) {
+                console.error("Error selecting feeder:", error);
+              }
+            }}
             className={`
               mb-3 p-3 rounded-md cursor-pointer transition-colors duration-150
               ${selectedFeeder?.id === feeder.id ? 'bg-slate-700' : 'bg-slate-800 hover:bg-slate-700'}

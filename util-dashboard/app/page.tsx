@@ -13,8 +13,50 @@ import { Feeder, DerAsset, MitigationEvent, ChatLog } from './data/dummyData';
 // Import the map component dynamically to avoid SSR issues with Leaflet
 const GridMap = dynamic(
   () => import('./components/GridMap'),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex-1 bg-slate-800 rounded-lg shadow-lg overflow-hidden flex items-center justify-center">
+        <div className="text-white text-center p-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading map...</p>
+        </div>
+      </div>
+    )
+  }
 );
+
+// Error boundary for map component
+function MapErrorBoundary({ children }: { children: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    const handleError = () => {
+      setHasError(true);
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
+  if (hasError) {
+    return (
+      <div className="flex-1 bg-slate-800 rounded-lg shadow-lg overflow-hidden flex items-center justify-center">
+        <div className="text-white text-center p-4">
+          <p className="text-red-500 mb-2">Map could not be loaded</p>
+          <button 
+            onClick={() => setHasError(false)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 export default function Home() {
   // State for all dashboard data
@@ -81,6 +123,28 @@ export default function Home() {
     return () => clearInterval(chatUpdateInterval);
   }, []);
 
+  // Enhancing the feeder selection with error handling
+  const safelySelectFeeder = (feeder: Feeder | null) => {
+    try {
+      if (feeder === null) {
+        setSelectedFeeder(null);
+        return;
+      }
+      
+      // Validate feeder data before setting
+      if (feeder && typeof feeder === 'object' && 'id' in feeder) {
+        console.log('Setting selected feeder at page level:', feeder.name);
+        setSelectedFeeder(feeder);
+      } else {
+        console.error('Invalid feeder data:', feeder);
+      }
+    } catch (error) {
+      console.error('Error selecting feeder:', error);
+      // Reset selection if there's an error
+      setSelectedFeeder(null);
+    }
+  };
+
   return (
     <main className="flex flex-col h-screen overflow-hidden bg-slate-900 text-white">
       <Header />
@@ -110,7 +174,7 @@ export default function Home() {
               <FeederSummary 
                 feeders={feeders} 
                 selectedFeeder={selectedFeeder}
-                setSelectedFeeder={setSelectedFeeder}
+                setSelectedFeeder={safelySelectFeeder}
               />
             ) : (
               <AuditTrail 
@@ -123,14 +187,16 @@ export default function Home() {
         
         {/* Center panel: Interactive map */}
         <div className="flex-1 bg-slate-800 rounded-lg shadow-lg overflow-hidden">
-          <GridMap 
-            feeders={feeders}
-            derAssets={derAssets}
-            mitigationEvents={mitigationEvents}
-            onSelectFeeder={setSelectedFeeder}
-            onSelectDer={setSelectedDer}
-            selectedFeeder={selectedFeeder}
-          />
+          <MapErrorBoundary>
+            <GridMap 
+              feeders={feeders}
+              derAssets={derAssets}
+              mitigationEvents={mitigationEvents}
+              onSelectFeeder={safelySelectFeeder}
+              onSelectDer={setSelectedDer}
+              selectedFeeder={selectedFeeder}
+            />
+          </MapErrorBoundary>
         </div>
         
         {/* Right panel: Agent chat */}
