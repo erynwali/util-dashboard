@@ -106,8 +106,10 @@ const GridMap: React.FC<GridMapProps> = ({
 
   // Effect to update selectedItem when selectedFeeder changes from outside
   useEffect(() => {
-    if (selectedFeeder && (!selectedItem || selectedFeeder.id !== selectedItem.id)) {
+    if (selectedFeeder) {
+      // Always update selectedItem and activeFeederFilter when selectedFeeder changes
       setSelectedItem(selectedFeeder);
+      setActiveFeederFilter(selectedFeeder.id);
       
       // If we have a map instance, fly to the feeder location
       if (mapInstance && selectedFeeder.coordinates) {
@@ -118,20 +120,6 @@ const GridMap: React.FC<GridMapProps> = ({
       }
     }
   }, [selectedFeeder, mapInstance]);
-
-  // Effect to reset filter when selected feeder changes
-  useEffect(() => {
-    // When a feeder is selected from outside, apply the filter
-    if (selectedItem) {
-      const selectedFeeder = feeders.find((f: Feeder) => 
-        f === selectedItem || f.id === selectedItem.id
-      );
-      
-      if (selectedFeeder) {
-        setActiveFeederFilter(selectedFeeder.id);
-      }
-    }
-  }, [selectedItem, feeders]);
 
   // Function to clear all filters
   const clearFilters = () => {
@@ -207,10 +195,13 @@ const GridMap: React.FC<GridMapProps> = ({
     
     const hasSimulation = feeder.simulationActive;
     
+    // Check if this feeder is selected
+    const isSelected = selectedFeeder && selectedFeeder.id === feeder.id;
+    
     // If there's an active fallback, override with fallback color
     if (hasFallback) {
       return L.divIcon({
-        className: 'bg-blue-500 rounded-full shadow-lg',
+        className: `bg-blue-500 rounded-full shadow-lg ${isSelected ? 'ring-4 ring-white' : ''}`,
         html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0110 2v5.8h5a1 1 0 01.5 1.8l-9 7A1 1 0 015 15.8V10H2a1 1 0 01-.5-1.8l9-7z" clip-rule="evenodd" />
@@ -224,7 +215,7 @@ const GridMap: React.FC<GridMapProps> = ({
     // If it's part of a simulation, show with a different visual
     if (hasSimulation) {
       return L.divIcon({
-        className: 'bg-purple-600 rounded-full shadow-lg simulation-pulse',
+        className: `bg-purple-600 rounded-full shadow-lg simulation-pulse ${isSelected ? 'ring-4 ring-white' : ''}`,
         html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -248,7 +239,7 @@ const GridMap: React.FC<GridMapProps> = ({
     }
     
     return L.divIcon({
-      className: `${bgColorClass} rounded-full shadow-lg ${pulseClass}`,
+      className: `${bgColorClass} rounded-full shadow-lg ${pulseClass} ${isSelected ? 'ring-4 ring-white' : ''}`,
       html: `<div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
@@ -343,6 +334,7 @@ const GridMap: React.FC<GridMapProps> = ({
   // Handle feeder selection
   const handleFeederSelect = (feeder: Feeder) => {
     setSelectedItem(feeder);
+    setActiveFeederFilter(feeder.id);
     onSelectFeeder(feeder);
     
     // Fly to the feeder on selection
