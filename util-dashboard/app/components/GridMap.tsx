@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -481,10 +481,101 @@ const GridMap: React.FC<GridMapProps> = ({
     }
   }, [activeFeederFilter, selectedItem, mapInstance]);
 
+  // Memoize the filtered feeders to prevent re-renders
+  const visibleFeeders = useMemo(() => {
+    console.log("Computing visible feeders");
+    return feeders.filter(feeder => shouldShowItem(feeder, 'feeder')).filter(feeder => {
+      // Validate coordinates
+      return feeder && 
+             feeder.coordinates && 
+             Array.isArray(feeder.coordinates) && 
+             feeder.coordinates.length === 2 &&
+             !isNaN(parseFloat(String(feeder.coordinates[0]))) &&
+             !isNaN(parseFloat(String(feeder.coordinates[1])));
+    });
+  }, [feeders, activeFeederFilter, mapFilter]);
+
+  // Memoize the filtered DERs
+  const visibleDERs = useMemo(() => {
+    console.log("Computing visible DERs");
+    return derAssets.filter(der => shouldShowItem(der, 'der')).filter(der => {
+      // Validate coordinates
+      return der && 
+             der.coordinates && 
+             Array.isArray(der.coordinates) && 
+             der.coordinates.length === 2 &&
+             !isNaN(parseFloat(String(der.coordinates[0]))) &&
+             !isNaN(parseFloat(String(der.coordinates[1])));
+    });
+  }, [derAssets, activeFeederFilter, mapFilter, mitigationEvents]);
+
+  // Memoize the filtered households
+  const visibleHouseholds = useMemo(() => {
+    console.log("Computing visible households");
+    const households = getHouseholds();
+    return households.filter(household => shouldShowItem(household, 'household')).filter(household => {
+      // Validate coordinates
+      return household && 
+             household.coordinates && 
+             Array.isArray(household.coordinates) && 
+             household.coordinates.length === 2 &&
+             !isNaN(parseFloat(String(household.coordinates[0]))) &&
+             !isNaN(parseFloat(String(household.coordinates[1])));
+    });
+  }, [activeFeederFilter, mapFilter]);
+
+  // Memoize active mitigation zones
+  const visibleMitigationZones = useMemo(() => {
+    console.log("Computing visible mitigation zones");
+    return mitigationEvents
+      .filter(event => {
+        return event.status === 'active' && 
+               (!activeFeederFilter || event.feederId === activeFeederFilter);
+      })
+      .map(event => {
+        const feeder = feeders.find((f: Feeder) => f.id === event.feederId);
+        
+        if (!feeder || 
+            !feeder.coordinates || 
+            !Array.isArray(feeder.coordinates) || 
+            feeder.coordinates.length !== 2 ||
+            isNaN(parseFloat(String(feeder.coordinates[0]))) ||
+            isNaN(parseFloat(String(feeder.coordinates[1])))) {
+          return null;
+        }
+        
+        // Only show if the feeder would be visible
+        if (activeFeederFilter && feeder.id !== activeFeederFilter) {
+          return null;
+        }
+        
+        return {
+          id: event.id,
+          center: feeder.coordinates,
+          color: event.fallbackActivated ? '#3b82f6' : '#22c55e',
+          fillColor: event.fallbackActivated ? '#3b82f6' : '#22c55e'
+        };
+      })
+      .filter(Boolean); // Remove null values
+  }, [mitigationEvents, feeders, activeFeederFilter]);
+
+  // Create a stable handler for item hovering
+  const handleItemHoverStable = useCallback((item, coordinates, content) => {
+    setTooltipContent(content);
+    setTooltipPos(coordinates);
+    setShowTooltip(true);
+  }, []);
+
+  // Create a stable handler for item leaving
+  const handleItemLeaveStable = useCallback(() => {
+    setShowTooltip(false);
+  }, []);
+
   return (
     <div className="relative h-full w-full">
       <MapErrorBoundary fallback={<GridMapFallback />}>
         <MapContainer 
+          key="main-map"
           center={[37.7749, -122.4194]} 
           zoom={13} 
           style={{ height: '100%', width: '100%', zIndex: 10 }}
@@ -492,10 +583,15 @@ const GridMap: React.FC<GridMapProps> = ({
           whenCreated={(map) => {
             setMapInstance(map);
           }}
-          // Add these options to improve performance
           preferCanvas={true}
           updateWhenZooming={false}
           updateWhenIdle={true}
+          minZoom={10}
+          maxZoom={18}
+          maxBounds={[
+            [37.6, -122.6], // Southwest
+            [37.9, -122.2]  // Northeast
+          ]}
         >
           <MapController onMapReady={(map) => {
             setMapInstance(map);
@@ -516,189 +612,132 @@ const GridMap: React.FC<GridMapProps> = ({
           />
           
           {/* Render feeder markers if filter allows */}
-          {feeders.filter(feeder => shouldShowItem(feeder, 'feeder')).map(feeder => {
-            // Skip rendering if coordinates are invalid
-            if (!feeder.coordinates || 
-                !Array.isArray(feeder.coordinates) || 
-                feeder.coordinates.length !== 2 ||
-                isNaN(parseFloat(String(feeder.coordinates[0]))) ||
-                isNaN(parseFloat(String(feeder.coordinates[1])))) {
-              return null;
-            }
-            
-            return (
-              <Marker 
-                key={feeder.id}
-                position={feeder.coordinates}
-                icon={createFeederIcon(feeder)}
-                eventHandlers={{
-                  click: () => handleFeederSelect(feeder),
-                  mouseover: (e) => handleItemHover(
-                    feeder, 
-                    feeder.coordinates, 
-                    <div className="text-sm">
-                      <div className="font-bold">{feeder.name}</div>
-                      <div>Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
-                      <div>Status: {feeder.critical ? 'Critical' : feeder.breachMargin < 10 ? 'Warning' : 'Normal'}</div>
-                    </div>
-                  ),
-                  mouseout: handleItemLeave
-                }}
-              >
-                <Popup>
-                  <div className="text-slate-800">
+          {visibleFeeders.map(feeder => (
+            <Marker 
+              key={`feeder-${feeder.id}`}
+              position={feeder.coordinates}
+              icon={createFeederIcon(feeder)}
+              eventHandlers={{
+                click: () => handleFeederSelect(feeder),
+                mouseover: () => handleItemHoverStable(
+                  feeder, 
+                  feeder.coordinates, 
+                  <div className="text-sm">
                     <div className="font-bold">{feeder.name}</div>
-                    <div>Region: {feeder.region}</div>
-                    <div>Current Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
-                    <div>Projected Load: {Math.round((feeder.projectedLoad / feeder.capacity) * 100)}%</div>
-                    <div>Breach Margin: {feeder.breachMargin.toFixed(1)}%</div>
-                    
-                    {feeder.critical && (
-                      <div className="text-red-600 font-bold mt-1">CRITICAL</div>
-                    )}
-                    
-                    {mitigationEvents.some(e => e.feederId === feeder.id && e.status === 'active') && (
-                      <div className="text-blue-600 font-bold mt-1">
-                        Mitigation Active
-                        {mitigationEvents.some(e => e.feederId === feeder.id && e.fallbackActivated) && (
-                          ' (Fallback)'
-                        )}
-                      </div>
-                    )}
+                    <div>Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
+                    <div>Status: {feeder.critical ? 'Critical' : feeder.breachMargin < 10 ? 'Warning' : 'Normal'}</div>
                   </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                ),
+                mouseout: handleItemLeaveStable
+              }}
+            >
+              <Popup>
+                <div className="text-slate-800">
+                  <div className="font-bold">{feeder.name}</div>
+                  <div>Region: {feeder.region}</div>
+                  <div>Current Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
+                  <div>Projected Load: {Math.round((feeder.projectedLoad / feeder.capacity) * 100)}%</div>
+                  <div>Breach Margin: {feeder.breachMargin.toFixed(1)}%</div>
+                  
+                  {feeder.critical && (
+                    <div className="text-red-600 font-bold mt-1">CRITICAL</div>
+                  )}
+                  
+                  {mitigationEvents.some(e => e.feederId === feeder.id && e.status === 'active') && (
+                    <div className="text-blue-600 font-bold mt-1">
+                      Mitigation Active
+                      {mitigationEvents.some(e => e.feederId === feeder.id && e.fallbackActivated) && (
+                        ' (Fallback)'
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
           
           {/* Render DER asset markers if filter allows */}
-          {derAssets.filter(der => shouldShowItem(der, 'der')).map(der => {
-            // Skip rendering if coordinates are invalid
-            if (!der.coordinates || 
-                !Array.isArray(der.coordinates) || 
-                der.coordinates.length !== 2 ||
-                isNaN(parseFloat(String(der.coordinates[0]))) ||
-                isNaN(parseFloat(String(der.coordinates[1])))) {
-              return null;
-            }
-            
-            return (
-              <Marker 
-                key={der.id}
-                position={der.coordinates}
-                icon={createDerIcon(der)}
-                eventHandlers={{
-                  click: () => onSelectDer(der),
-                  mouseover: (e: any) => handleItemHover(der, [e.target._latlng.lat, e.target._latlng.lng], (
-                    <div className="bg-slate-800 p-2 rounded-md shadow-lg">
-                      <div className="font-bold text-white">{der.name}</div>
-                      <div className="text-gray-300">Type: {der.type}</div>
-                    </div>
-                  )),
-                  mouseout: handleItemLeave
-                }}
-              >
-                <Popup>
-                  <div className="text-slate-800">
-                    <div className="font-bold">{der.name}</div>
-                    <div>Type: {der.type}</div>
-                    <div>Availability: {der.availability}%</div>
-                    <div>Trust Score: {der.trustScore}</div>
-                    <div>Capacity: {der.capacity} units</div>
-                    
-                    {/* Show if this DER is being used in an active mitigation */}
-                    {mitigationEvents
-                      .filter(e => e.status === 'active' && e.actionSet.derIds.includes(der.id))
-                      .map(e => (
-                        <div key={e.id} className="text-blue-600 font-bold mt-1">
-                          Active in mitigation
-                        </div>
-                      ))
-                    }
+          {visibleDERs.map(der => (
+            <Marker 
+              key={`der-${der.id}`}
+              position={der.coordinates}
+              icon={createDerIcon(der)}
+              eventHandlers={{
+                click: () => onSelectDer(der),
+                mouseover: (e) => handleItemHoverStable(
+                  der, 
+                  der.coordinates, 
+                  <div className="bg-slate-800 p-2 rounded-md shadow-lg">
+                    <div className="font-bold text-white">{der.name}</div>
+                    <div className="text-gray-300">Type: {der.type}</div>
                   </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                ),
+                mouseout: handleItemLeaveStable
+              }}
+            >
+              <Popup>
+                <div className="text-slate-800">
+                  <div className="font-bold">{der.name}</div>
+                  <div>Type: {der.type}</div>
+                  <div>Availability: {der.availability}%</div>
+                  <div>Trust Score: {der.trustScore}</div>
+                  <div>Capacity: {der.capacity} units</div>
+                  
+                  {mitigationEvents
+                    .filter(e => e.status === 'active' && e.actionSet.derIds.includes(der.id))
+                    .map(e => (
+                      <div key={e.id} className="text-blue-600 font-bold mt-1">
+                        Active in mitigation
+                      </div>
+                    ))
+                  }
+                </div>
+              </Popup>
+            </Marker>
+          ))}
           
           {/* Render household markers if filter allows */}
-          {getHouseholds().filter(household => shouldShowItem(household, 'household')).map(household => {
-            // Skip rendering if coordinates are invalid
-            if (!household.coordinates || 
-                !Array.isArray(household.coordinates) || 
-                household.coordinates.length !== 2 ||
-                isNaN(parseFloat(String(household.coordinates[0]))) ||
-                isNaN(parseFloat(String(household.coordinates[1])))) {
-              return null;
-            }
-            
-            return (
-              <Marker
-                key={household.id}
-                position={household.coordinates}
-                icon={createHouseholdIcon()}
-                eventHandlers={{
-                  mouseover: (e: any) => handleItemHover(household, [e.target._latlng.lat, e.target._latlng.lng], (
-                    <div className="bg-slate-800 p-2 rounded-md shadow-lg">
-                      <div className="font-bold text-white">Household</div>
-                      <div className="text-gray-300">DER Count: {household.derCount}</div>
-                      <div className="text-gray-300">Feeder: {feeders.find(f => f.id === household.feederId)?.name}</div>
-                    </div>
-                  )),
-                  mouseout: handleItemLeave
-                }}
-              >
-                <Popup>
-                  <div className="text-slate-800">
-                    <div className="font-bold">Household</div>
-                    <div>Connected to: {feeders.find((f: Feeder) => f.id === household.feederId)?.name}</div>
-                    <div>DER Count: {household.derCount}</div>
+          {visibleHouseholds.map(household => (
+            <Marker
+              key={`household-${household.id}`}
+              position={household.coordinates}
+              icon={createHouseholdIcon()}
+              eventHandlers={{
+                mouseover: (e) => handleItemHoverStable(
+                  household, 
+                  household.coordinates, 
+                  <div className="bg-slate-800 p-2 rounded-md shadow-lg">
+                    <div className="font-bold text-white">Household</div>
+                    <div className="text-gray-300">DER Count: {household.derCount}</div>
+                    <div className="text-gray-300">Feeder: {feeders.find(f => f.id === household.feederId)?.name}</div>
                   </div>
-                </Popup>
-              </Marker>
-            );
-          })}
+                ),
+                mouseout: handleItemLeaveStable
+              }}
+            >
+              <Popup>
+                <div className="text-slate-800">
+                  <div className="font-bold">Household</div>
+                  <div>Connected to: {feeders.find((f: Feeder) => f.id === household.feederId)?.name}</div>
+                  <div>DER Count: {household.derCount}</div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
           
           {/* Render active mitigation zones as circles */}
-          {mitigationEvents
-            .filter(event => {
-              // Only show mitigation events that are active AND
-              // either no filter is active OR the event belongs to the selected feeder
-              return event.status === 'active' && 
-                     (!activeFeederFilter || event.feederId === activeFeederFilter);
-            })
-            .map(event => {
-              const feeder = feeders.find((f: Feeder) => f.id === event.feederId);
-              
-              // Skip rendering if feeder or its coordinates are invalid
-              if (!feeder || 
-                  !feeder.coordinates || 
-                  !Array.isArray(feeder.coordinates) || 
-                  feeder.coordinates.length !== 2 ||
-                  isNaN(parseFloat(String(feeder.coordinates[0]))) ||
-                  isNaN(parseFloat(String(feeder.coordinates[1])))) {
-                return null;
-              }
-              
-              // Only render if this event's feeder is visible based on current filters
-              if (!shouldShowItem(feeder, 'feeder')) {
-                return null;
-              }
-              
-              return (
-                <Circle
-                  key={event.id}
-                  center={feeder.coordinates}
-                  radius={500}
-                  pathOptions={{
-                    color: event.fallbackActivated ? '#3b82f6' : '#22c55e',
-                    fillColor: event.fallbackActivated ? '#3b82f6' : '#22c55e',
-                    fillOpacity: 0.2
-                  }}
-                />
-              );
-            })
-          }
+          {visibleMitigationZones.map(zone => (
+            <Circle
+              key={`mitigation-${zone.id}`}
+              center={zone.center}
+              radius={500}
+              pathOptions={{
+                color: zone.color,
+                fillColor: zone.fillColor,
+                fillOpacity: 0.2
+              }}
+            />
+          ))}
         </MapContainer>
       </MapErrorBoundary>
 
