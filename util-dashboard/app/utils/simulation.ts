@@ -400,4 +400,16 @@ export const addOperatorChatMessage = (message: string) => {
   
   chatLogs = [...chatLogs, newMessage];
   return chatLogs;
-}; 
+};
+
+// Add this function to ensure deterministic behavior
+export function getStableFeederLoad(feederId: string): number {
+  // Use a simple hash function to generate a stable value between 0 and 1
+  const hash = feederId.split('').reduce((acc, char) => {
+    return ((acc << 5) - acc) + char.charCodeAt(0);
+  }, 0);
+  
+  // Use the hash to generate a stable value between 0.5 and 0.9
+  const baseValue = 0.5 + (Math.abs(hash) % 1000) / 2500;
+  return baseValue;
+} 
