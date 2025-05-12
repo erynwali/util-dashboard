@@ -138,9 +138,21 @@ const GridMap: React.FC<GridMapProps> = ({
   const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [mapError, setMapError] = useState<boolean>(false);
-  
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const householdsRef = useRef<{ id: string; feederId: string; coordinates: [number, number]; derCount: number }[]>([]);
+
   // New state to track the active feeder filter
   const [activeFeederFilter, setActiveFeederFilter] = useState<string | null>(null);
+
+  // Create a stable version of the household generation
+  useEffect(() => {
+    // Only generate households on the first render
+    if (!isInitialized && feeders.length > 0) {
+      console.log("Generating households initial data");
+      householdsRef.current = generateHouseholds(feeders);
+      setIsInitialized(true);
+    }
+  }, [feeders, isInitialized]);
 
   // Effect to update selectedItem when selectedFeeder changes from outside
   useEffect(() => {
@@ -170,6 +182,9 @@ const GridMap: React.FC<GridMapProps> = ({
 
   // Function to determine if an item should be displayed based on current filters
   const shouldShowItem = (item: any, type: 'feeder' | 'der' | 'household') => {
+    // Validate item to prevent errors
+    if (!item || !item.id) return false;
+    
     // If no feeder filter is active, show all items based on map filter
     if (!activeFeederFilter) {
       return mapFilter === 'all' || 
@@ -183,16 +198,27 @@ const GridMap: React.FC<GridMapProps> = ({
       // Only show the active feeder
       return item.id === activeFeederFilter;
     } else if (type === 'der') {
-      // Always show DERs when they're part of the filtered feeder's mitigation events
-      const feederEvents = mitigationEvents.filter(e => e.feederId === activeFeederFilter);
-      const eventDerIds = feederEvents.flatMap(e => e.actionSet.derIds);
-      
-      // When filter is 'all' or 'ders', show DERs connected to the active feeder
-      return (mapFilter === 'all' || mapFilter === 'ders') && eventDerIds.includes(item.id);
+      // Show DERs related to the selected feeder
+      try {
+        // Always show DERs when they're part of the filtered feeder's mitigation events
+        const feederEvents = mitigationEvents?.filter(e => e?.feederId === activeFeederFilter) || [];
+        const eventDerIds = feederEvents.flatMap(e => e?.actionSet?.derIds || []);
+        
+        // When filter is 'all' or 'ders', show DERs connected to the active feeder
+        return (mapFilter === 'all' || mapFilter === 'ders') && eventDerIds.includes(item.id);
+      } catch (error) {
+        console.error("Error filtering DERs:", error);
+        return false;
+      }
     } else if (type === 'household') {
-      // Always show households connected to the active feeder
-      // When filter is 'all' or 'households', show households connected to the active feeder
-      return (mapFilter === 'all' || mapFilter === 'households') && item.feederId === activeFeederFilter;
+      // Show households connected to the selected feeder
+      try {
+        // When filter is 'all' or 'households', show households connected to the active feeder
+        return (mapFilter === 'all' || mapFilter === 'households') && item.feederId === activeFeederFilter;
+      } catch (error) {
+        console.error("Error filtering households:", error);
+        return false;
+      }
     }
     
     return false;
@@ -343,21 +369,35 @@ const GridMap: React.FC<GridMapProps> = ({
     });
   };
 
-  // Generate households for each feeder
-  const generateHouseholds = () => {
+  // Generate households for each feeder - modified to take feeders as param
+  const generateHouseholds = (feedersData: Feeder[]) => {
     const households: { id: string; feederId: string; coordinates: [number, number]; derCount: number }[] = [];
     
-    feeders.forEach(feeder => {
-      // Generate 3-5 households per feeder (reduced from 10-20)
-      const householdCount = Math.floor(Math.random() * 3) + 3; // 3-5
+    if (!feedersData || feedersData.length === 0) return households;
+    
+    // Use a fixed seed for random generation to ensure consistency
+    const randomSeed = 0.5;
+    const getRandom = (min: number, max: number) => {
+      // Simple deterministic "random" function using the seed
+      const result = min + (randomSeed * (max - min));
+      return result;
+    };
+    
+    feedersData.forEach(feeder => {
+      if (!feeder || !feeder.coordinates) return;
+      
+      // Generate exactly 4 households per feeder (fixed number)
+      const householdCount = 4;
       
       for (let i = 0; i < householdCount; i++) {
-        // Generate random coordinates close to the feeder
-        const lat = feeder.coordinates[0] + (Math.random() - 0.5) * 0.02;
-        const lng = feeder.coordinates[1] + (Math.random() - 0.5) * 0.02;
+        // Generate deterministic coordinates close to the feeder
+        const offset = 0.01; // fixed distance
+        const angle = (i / householdCount) * Math.PI * 2; // distribute around in a circle
+        const lat = feeder.coordinates[0] + Math.cos(angle) * offset;
+        const lng = feeder.coordinates[1] + Math.sin(angle) * offset;
         
-        // Randomize DER count per household (2-3 instead of 3-5)
-        const derCount = Math.floor(Math.random() * 2) + 2; // 2-3
+        // Fixed DER count per household
+        const derCount = 2 + (i % 2); // alternating between 2 and 3
         
         households.push({
           id: `household-${feeder.id}-${i}`,
@@ -371,8 +411,10 @@ const GridMap: React.FC<GridMapProps> = ({
     return households;
   };
 
-  // Memoize the generated households to prevent regeneration on every render
-  const [households] = useState(() => generateHouseholds());
+  // Replace the useState line with a function that uses the ref
+  const getHouseholds = () => {
+    return householdsRef.current;
+  };
 
   // Handle feeder selection
   const handleFeederSelect = (feeder: Feeder) => {
@@ -551,7 +593,7 @@ const GridMap: React.FC<GridMapProps> = ({
           })}
           
           {/* Render household markers if filter allows */}
-          {households.filter(household => shouldShowItem(household, 'household')).map(household => {
+          {getHouseholds().filter(household => shouldShowItem(household, 'household')).map(household => {
             // Skip rendering if coordinates are invalid
             if (!household.coordinates || 
                 !Array.isArray(household.coordinates) || 
@@ -571,6 +613,7 @@ const GridMap: React.FC<GridMapProps> = ({
                     <div className="bg-slate-800 p-2 rounded-md shadow-lg">
                       <div className="font-bold text-white">Household</div>
                       <div className="text-gray-300">DER Count: {household.derCount}</div>
+                      <div className="text-gray-300">Feeder: {feeders.find(f => f.id === household.feederId)?.name}</div>
                     </div>
                   )),
                   mouseout: handleItemLeave
