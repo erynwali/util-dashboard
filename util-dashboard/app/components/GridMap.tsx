@@ -12,6 +12,7 @@ interface GridMapProps {
   mitigationEvents: MitigationEvent[];
   onSelectFeeder: (feeder: Feeder) => void;
   onSelectDer: (der: DerAsset) => void;
+  selectedFeeder: Feeder | null;
 }
 
 // Map filter options
@@ -90,7 +91,8 @@ const GridMap: React.FC<GridMapProps> = ({
   derAssets,
   mitigationEvents,
   onSelectFeeder,
-  onSelectDer
+  onSelectDer,
+  selectedFeeder
 }) => {
   const [mapFilter, setMapFilter] = useState<MapFilterType>('all');
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -102,16 +104,32 @@ const GridMap: React.FC<GridMapProps> = ({
   // New state to track the active feeder filter
   const [activeFeederFilter, setActiveFeederFilter] = useState<string | null>(null);
 
+  // Effect to update selectedItem when selectedFeeder changes from outside
+  useEffect(() => {
+    if (selectedFeeder && (!selectedItem || selectedFeeder.id !== selectedItem.id)) {
+      setSelectedItem(selectedFeeder);
+      
+      // If we have a map instance, fly to the feeder location
+      if (mapInstance && selectedFeeder.coordinates) {
+        mapInstance.flyTo(selectedFeeder.coordinates, 14, {
+          animate: true,
+          duration: 1
+        });
+      }
+    }
+  }, [selectedFeeder, mapInstance]);
+
   // Effect to reset filter when selected feeder changes
   useEffect(() => {
     // When a feeder is selected from outside, apply the filter
-    const selectedFeeder = feeders.find((f: Feeder) => 
-      f === selectedItem || (selectedItem && f.id === selectedItem.id)
-    );
-    
-    if (selectedFeeder) {
-      setActiveFeederFilter(selectedFeeder.id);
-      setSelectedItem(selectedFeeder);
+    if (selectedItem) {
+      const selectedFeeder = feeders.find((f: Feeder) => 
+        f === selectedItem || f.id === selectedItem.id
+      );
+      
+      if (selectedFeeder) {
+        setActiveFeederFilter(selectedFeeder.id);
+      }
     }
   }, [selectedItem, feeders]);
 
@@ -322,6 +340,20 @@ const GridMap: React.FC<GridMapProps> = ({
   // Memoize the generated households to prevent regeneration on every render
   const [households] = useState(() => generateHouseholds());
 
+  // Handle feeder selection
+  const handleFeederSelect = (feeder: Feeder) => {
+    setSelectedItem(feeder);
+    onSelectFeeder(feeder);
+    
+    // Fly to the feeder on selection
+    if (mapInstance && feeder.coordinates) {
+      mapInstance.flyTo(feeder.coordinates, 14, {
+        animate: true,
+        duration: 1
+      });
+    }
+  };
+
   return (
     <div className="relative h-full w-full">
       <MapContainer 
@@ -343,24 +375,16 @@ const GridMap: React.FC<GridMapProps> = ({
             position={feeder.coordinates}
             icon={createFeederIcon(feeder)}
             eventHandlers={{
-              click: () => {
-                onSelectFeeder(feeder);
-                if (activeFeederFilter === feeder.id) {
-                  // Clicking the already active feeder will clear the filter
-                  setActiveFeederFilter(null);
-                  setSelectedItem(null);
-                } else {
-                  // Set this feeder as the active filter
-                  setActiveFeederFilter(feeder.id);
-                  setSelectedItem(feeder);
-                }
-              },
-              mouseover: (e: any) => handleItemHover(feeder, [e.target._latlng.lat, e.target._latlng.lng], (
-                <div className="bg-slate-800 p-2 rounded-md shadow-lg">
-                  <div className="font-bold text-white">{feeder.name}</div>
-                  <div className="text-gray-300">Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
+              click: () => handleFeederSelect(feeder),
+              mouseover: (e) => handleItemHover(
+                feeder, 
+                feeder.coordinates, 
+                <div className="text-sm">
+                  <div className="font-bold">{feeder.name}</div>
+                  <div>Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
+                  <div>Status: {feeder.critical ? 'Critical' : feeder.breachMargin < 10 ? 'Warning' : 'Normal'}</div>
                 </div>
-              )),
+              ),
               mouseout: handleItemLeave
             }}
           >

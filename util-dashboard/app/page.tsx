@@ -129,6 +129,7 @@ export default function Home() {
             mitigationEvents={mitigationEvents}
             onSelectFeeder={setSelectedFeeder}
             onSelectDer={setSelectedDer}
+            selectedFeeder={selectedFeeder}
           />
         </div>
         
