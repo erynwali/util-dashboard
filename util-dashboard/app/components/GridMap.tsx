@@ -70,89 +70,11 @@ useEffect(() => {
   setRenderKey(prev => prev + 1);
 }, [selectedFeeder, activeFeederFilter, mapFilter]);
 
-// Completely replace the MapController to ensure we have full control
-const MapController = ({ onMapReady }: { onMapReady: (map: any) => void }) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    // Set map once on initial mount
-    onMapReady(map);
-    
-    // Clear event listeners to prevent memory leaks
-    return () => {
-      map.off('click');
-      map.off('move');
-      map.off('zoom');
-    };
-  }, [map, onMapReady]);
-  
-  // If feeder is selected, fly to it
-  useEffect(() => {
-    if (selectedFeeder && selectedFeeder.coordinates) {
-      try {
-        // Fly to the feeder location with animation
-        const [lat, lng] = selectedFeeder.coordinates;
-        map.flyTo([lat, lng], 14, {
-          animate: true,
-          duration: 1.5,
-          easeLinearity: 0.25
-        });
-      } catch (error) {
-        console.error("Error flying to feeder:", error);
-      }
-    } else if (!selectedFeeder && !activeFeederFilter) {
-      // If no selection, reset view
-      try {
-        map.flyTo([37.7749, -122.4194], 13, {
-          animate: true,
-          duration: 1
-        });
-      } catch (error) {
-        console.error("Error resetting map view:", error);
-      }
-    }
-  }, [map, selectedFeeder, activeFeederFilter]);
-  
-  return null;
-};
+// Add this near the top of the file, outside of the component
+// Use static storage for all map elements to prevent regeneration
+const STATIC_HOUSEHOLDS: { id: string; feederId: string; coordinates: [number, number]; derCount: number }[] = [];
 
-// Simple fallback component when map fails to load
-const GridMapFallback = () => (
-  <div className="h-full w-full flex items-center justify-center bg-slate-800">
-    <div className="text-center p-6">
-      <div className="text-red-500 text-xl mb-2">Map loading error</div>
-      <p className="text-gray-300 mb-4">There was a problem loading the map interface.</p>
-      <button 
-        onClick={() => window.location.reload()}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-      >
-        Reload page
-      </button>
-    </div>
-  </div>
-);
-
-// Simple error boundary class component
-class MapErrorBoundary extends React.Component<{ children: React.ReactNode, fallback: React.ReactNode }> {
-  state = { hasError: false };
-  
-  static getDerivedStateFromError(error: any) {
-    return { hasError: true };
-  }
-  
-  componentDidCatch(error: any, errorInfo: any) {
-    console.error("Map error boundary caught error:", error, errorInfo);
-  }
-  
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback;
-    }
-    
-    return this.props.children;
-  }
-}
-
+// Inside the GridMap component, replace the household generation logic
 const GridMap: React.FC<GridMapProps> = ({
   feeders,
   derAssets,
@@ -168,41 +90,128 @@ const GridMap: React.FC<GridMapProps> = ({
   const [tooltipContent, setTooltipContent] = useState<React.ReactNode>(null);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const [mapError, setMapError] = useState<boolean>(false);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const [isInitializedRef, setIsInitializedRef] = useState<boolean>(false);
   const householdsRef = useRef<{ id: string; feederId: string; coordinates: [number, number]; derCount: number }[]>([]);
 
   // New state to track the active feeder filter
   const [activeFeederFilter, setActiveFeederFilter] = useState<string | null>(null);
 
-  // Create a stable version of the household generation
+  // Initialize static data only once, ever
   useEffect(() => {
-    // Only generate households on the first render
-    if (!isInitialized && feeders.length > 0) {
-      console.log("Generating households initial data");
-      householdsRef.current = generateHouseholds(feeders);
-      setIsInitialized(true);
-    }
-  }, [feeders, isInitialized]);
-
-  // Effect to update selectedItem when selectedFeeder changes from outside
-  useEffect(() => {
-    if (selectedFeeder && selectedFeeder.id) {
-      try {
-        // Always update selectedItem and activeFeederFilter when selectedFeeder changes
-        setSelectedItem(selectedFeeder);
-        setActiveFeederFilter(selectedFeeder.id);
+    if (STATIC_HOUSEHOLDS.length === 0) {
+      console.log("Generating static households data once per app lifetime");
+      
+      // Clear first to be sure
+      STATIC_HOUSEHOLDS.length = 0;
+      
+      // Generate households with fixed positions
+      feeders.forEach(feeder => {
+        if (!feeder || !feeder.coordinates) return;
         
-        // Ensure coordinates are valid before trying to fly to them
-        if (selectedFeeder.coordinates && 
-            Array.isArray(selectedFeeder.coordinates) && 
-            selectedFeeder.coordinates.length === 2) {
-          safelyFlyToLocation(selectedFeeder.coordinates);
+        // Generate exactly 4 households per feeder
+        for (let i = 0; i < 4; i++) {
+          // Use a fixed offset and angle for consistent positioning
+          const offset = 0.01;
+          const angle = (i / 4) * Math.PI * 2;
+          const lat = feeder.coordinates[0] + Math.cos(angle) * offset;
+          const lng = feeder.coordinates[1] + Math.sin(angle) * offset;
+          
+          // Fixed DER count
+          const derCount = 2 + (i % 2);
+          
+          STATIC_HOUSEHOLDS.push({
+            id: `household-${feeder.id}-${i}`,
+            feederId: feeder.id,
+            coordinates: [lat, lng],
+            derCount
+          });
         }
-      } catch (error) {
-        console.error("Error handling selectedFeeder change:", error);
-      }
+      });
     }
-  }, [selectedFeeder, mapInstance]);
+    
+    setIsInitializedRef(true);
+  }, []);  // Empty dependency array means this runs once
+
+  // Simple getter for households that never changes
+  const getHouseholds = useCallback(() => {
+    return STATIC_HOUSEHOLDS;
+  }, []); // No dependencies = never changes
+
+  // Use the original MapController instead of our new one
+  const MapController = ({ onMapReady }: { onMapReady: (map: any) => void }) => {
+    const map = useMap();
+    
+    useEffect(() => {
+      onMapReady(map);
+      
+      // Very minimal setup to avoid re-renders
+      return () => {
+        map.off();
+      };
+    }, [map, onMapReady]);
+    
+    // If feeder is selected, fly to it
+    useEffect(() => {
+      if (selectedFeeder && selectedFeeder.coordinates) {
+        try {
+          map.flyTo(selectedFeeder.coordinates, 14, {
+            animate: true,
+            duration: 1.5
+          });
+        } catch (error) {
+          console.error("Error flying to feeder:", error);
+        }
+      } else if (!selectedFeeder && !activeFeederFilter) {
+        try {
+          map.flyTo([37.7749, -122.4194], 13, {
+            animate: true,
+            duration: 1
+          });
+        } catch (error) {
+          console.error("Error resetting map view:", error);
+        }
+      }
+    }, [map, selectedFeeder, activeFeederFilter]);
+    
+    return null;
+  };
+
+  // Simple fallback component when map fails to load
+  const GridMapFallback = () => (
+    <div className="h-full w-full flex items-center justify-center bg-slate-800">
+      <div className="text-center p-6">
+        <div className="text-red-500 text-xl mb-2">Map loading error</div>
+        <p className="text-gray-300 mb-4">There was a problem loading the map interface.</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+        >
+          Reload page
+        </button>
+      </div>
+    </div>
+  );
+
+  // Simple error boundary class component
+  class MapErrorBoundary extends React.Component<{ children: React.ReactNode, fallback: React.ReactNode }> {
+    state = { hasError: false };
+    
+    static getDerivedStateFromError(error: any) {
+      return { hasError: true };
+    }
+    
+    componentDidCatch(error: any, errorInfo: any) {
+      console.error("Map error boundary caught error:", error, errorInfo);
+    }
+    
+    render() {
+      if (this.state.hasError) {
+        return this.props.fallback;
+      }
+      
+      return this.props.children;
+    }
+  }
 
   // Function to clear all filters
   const clearFilters = () => {
@@ -401,53 +410,6 @@ const GridMap: React.FC<GridMapProps> = ({
     });
   };
 
-  // Generate households for each feeder - modified to take feeders as param
-  const generateHouseholds = (feedersData: Feeder[]) => {
-    const households: { id: string; feederId: string; coordinates: [number, number]; derCount: number }[] = [];
-    
-    if (!feedersData || feedersData.length === 0) return households;
-    
-    // Use a fixed seed for random generation to ensure consistency
-    const randomSeed = 0.5;
-    const getRandom = (min: number, max: number) => {
-      // Simple deterministic "random" function using the seed
-      const result = min + (randomSeed * (max - min));
-      return result;
-    };
-    
-    feedersData.forEach(feeder => {
-      if (!feeder || !feeder.coordinates) return;
-      
-      // Generate exactly 4 households per feeder (fixed number)
-      const householdCount = 4;
-      
-      for (let i = 0; i < householdCount; i++) {
-        // Generate deterministic coordinates close to the feeder
-        const offset = 0.01; // fixed distance
-        const angle = (i / householdCount) * Math.PI * 2; // distribute around in a circle
-        const lat = feeder.coordinates[0] + Math.cos(angle) * offset;
-        const lng = feeder.coordinates[1] + Math.sin(angle) * offset;
-        
-        // Fixed DER count per household
-        const derCount = 2 + (i % 2); // alternating between 2 and 3
-        
-        households.push({
-          id: `household-${feeder.id}-${i}`,
-          feederId: feeder.id,
-          coordinates: [lat, lng],
-          derCount
-        });
-      }
-    });
-    
-    return households;
-  };
-
-  // Replace the useState line with a function that uses the ref
-  const getHouseholds = () => {
-    return householdsRef.current;
-  };
-
   // Handle feeder selection
   const handleFeederSelect = (feeder: Feeder) => {
     if (!feeder || !feeder.id) return;
@@ -624,21 +586,13 @@ const GridMap: React.FC<GridMapProps> = ({
             url={darkModeUrl}
           />
           
-          {/* Only render feeders that pass our filter */}
-          {feeders.map(feeder => {
-            // Only render if feeder should be shown
+          {/* Only render items once initialization is complete */}
+          {isInitializedRef.current && feeders.map(feeder => {
             if (!shouldShowItem(feeder, 'feeder')) return null;
-            
-            // Only render if coordinates are valid
-            if (!feeder.coordinates || 
-                !Array.isArray(feeder.coordinates) || 
-                feeder.coordinates.length !== 2) {
-              return null;
-            }
             
             return (
               <Marker 
-                key={`feeder-${feeder.id}-${renderKey}`} 
+                key={`feeder-${feeder.id}`} 
                 position={feeder.coordinates}
                 icon={createFeederIcon(feeder)}
                 eventHandlers={{
@@ -649,7 +603,6 @@ const GridMap: React.FC<GridMapProps> = ({
                     <div className="text-sm">
                       <div className="font-bold">{feeder.name}</div>
                       <div>Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
-                      <div>Status: {feeder.critical ? 'Critical' : 'Warning'}</div>
                     </div>
                   ),
                   mouseout: handleItemLeaveStable
@@ -658,7 +611,6 @@ const GridMap: React.FC<GridMapProps> = ({
                 <Popup>
                   <div className="text-slate-800">
                     <div className="font-bold">{feeder.name}</div>
-                    <div>Region: {feeder.region}</div>
                     <div>Load: {Math.round((feeder.currentLoad / feeder.capacity) * 100)}%</div>
                   </div>
                 </Popup>
@@ -666,21 +618,13 @@ const GridMap: React.FC<GridMapProps> = ({
             );
           })}
           
-          {/* Only render DERs if they pass our filter */}
-          {derAssets.map(der => {
-            // Only render if DER should be shown
+          {/* Only render items once initialization is complete */}
+          {isInitializedRef.current && derAssets.map(der => {
             if (!shouldShowItem(der, 'der')) return null;
-            
-            // Only render if coordinates are valid
-            if (!der.coordinates || 
-                !Array.isArray(der.coordinates) || 
-                der.coordinates.length !== 2) {
-              return null;
-            }
             
             return (
               <Marker 
-                key={`der-${der.id}-${renderKey}`} 
+                key={`der-${der.id}`} 
                 position={der.coordinates}
                 icon={createDerIcon(der)}
                 eventHandlers={{
@@ -706,21 +650,13 @@ const GridMap: React.FC<GridMapProps> = ({
             );
           })}
           
-          {/* Only render households if they pass our filter */}
-          {getHouseholds().map(household => {
-            // Only render if household should be shown
+          {/* Only render items once initialization is complete */}
+          {isInitializedRef.current && getHouseholds().map(household => {
             if (!shouldShowItem(household, 'household')) return null;
-            
-            // Only render if coordinates are valid
-            if (!household.coordinates || 
-                !Array.isArray(household.coordinates) || 
-                household.coordinates.length !== 2) {
-              return null;
-            }
             
             return (
               <Marker 
-                key={`household-${household.id}-${renderKey}`} 
+                key={`household-${household.id}`} 
                 position={household.coordinates}
                 icon={createHouseholdIcon()}
                 eventHandlers={{
@@ -745,27 +681,17 @@ const GridMap: React.FC<GridMapProps> = ({
             );
           })}
           
-          {/* Only render mitigation circles if they pass our filter */}
-          {mitigationEvents.map(event => {
-            // Only show active events
+          {/* Only render items once initialization is complete */}
+          {isInitializedRef.current && mitigationEvents.map(event => {
             if (event.status !== 'active') return null;
-            
-            // Only show events for the selected feeder if filtering is active
             if (activeFeederFilter && event.feederId !== activeFeederFilter) return null;
             
-            // Find the associated feeder
             const feeder = feeders.find(f => f.id === event.feederId);
-            
-            // Skip if feeder not found or coordinates invalid
-            if (!feeder || !feeder.coordinates || 
-                !Array.isArray(feeder.coordinates) || 
-                feeder.coordinates.length !== 2) {
-              return null;
-            }
+            if (!feeder || !feeder.coordinates) return null;
             
             return (
               <Circle
-                key={`mitigation-${event.id}-${renderKey}`}
+                key={`mitigation-${event.id}`}
                 center={feeder.coordinates}
                 radius={500}
                 pathOptions={{
